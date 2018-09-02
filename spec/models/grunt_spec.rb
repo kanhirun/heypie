@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require_relative '../app/models/grunt'
+require_relative '../../app/models/grunt'
 
 RSpec.describe Grunt do
 
