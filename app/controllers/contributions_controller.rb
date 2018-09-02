@@ -4,7 +4,7 @@ require_relative '../models/state'
 
 class ContributionsController < ApplicationController
 
-  SLACK_CHANNEL = 'hey-pie-slack-test'
+  SLACK_CHANNEL   = ENV.fetch("SLACK_CHANNEL")
   SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
 
   def events
