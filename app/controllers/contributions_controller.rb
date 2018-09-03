@@ -19,83 +19,83 @@ class ContributionsController < ApplicationController
     p State.contribution_approval_request
   end
 
+  def new
+    trigger_id = params["trigger_id"]
+
+    client.dialog_open(trigger_id: trigger_id, dialog: get_dialog)
+  end
+
   # TODO: Consider using constraints to separate calls from Slack
   # https://guides.rubyonrails.org/routing.html#advanced-constraints
   def slack
-    if params["trigger_id"] != nil
-      trigger_id = params["trigger_id"]
+    # approve / reject
+    payload = JSON(params["payload"])
+    hard_coded_ts = "1535477555.000100"
 
-      send_dialog!(trigger_id: trigger_id)
-    else
-      # approve / reject
-      payload = JSON(params["payload"])
-      hard_coded_ts = "1535477555.000100"
+    if payload["type"] == "interactive_message"
+      voter = payload["user"]["id"]
+      grunt_voter = State.team.find do |g|
+        g.name == voter
+      end
 
-      if payload["type"] == "interactive_message"
-        voter = payload["user"]["id"]
-        grunt_voter = State.team.find do |g|
-          g.name == voter
-        end
+      return if grunt_voter.nil?
 
-        return if grunt_voter.nil?
-
-        if payload["actions"].first["name"] == "Approve"
-          if State.contribution_approval_request.approve(from: grunt_voter)
-            if ts = State.contribution_approval_request.id
-              client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Approved by:` <@#{voter}>", attachments: [], as_user: false, thread_ts: ts)
-            else
-              p 'error: missing ts'
-            end
-
-            if State.contribution_approval_request.approved?
-              if ts = State.contribution_approval_request.id
-                client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
-                message = "`With this contribution, the pie's valuation is now estimated at $#{State.pie_estimated_valuation} USD.` :dollar:"
-                client.chat_postMessage(channel: SLACK_CHANNEL, text: message, attachments: [], as_user: false, thread_ts: ts)
-              else
-                p 'error: missing ts'
-              end
-            end
+      if payload["actions"].first["name"] == "Approve"
+        if State.contribution_approval_request.approve(from: grunt_voter)
+          if ts = State.contribution_approval_request.id
+            client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Approved by:` <@#{voter}>", attachments: [], as_user: false, thread_ts: ts)
           else
+            p 'error: missing ts'
+          end
+
+          if State.contribution_approval_request.approved?
             if ts = State.contribution_approval_request.id
-              client.chat_postEphemeral(channel: SLACK_CHANNEL, text: '`You already voted.`', attachment: [], as_user: false, user: grunt_voter.name, thread_ts: hard_coded_ts)
+              client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
+              message = "`With this contribution, the pie's valuation is now estimated at $#{State.pie_estimated_valuation} USD.` :dollar:"
+              client.chat_postMessage(channel: SLACK_CHANNEL, text: message, attachments: [], as_user: false, thread_ts: ts)
             else
               p 'error: missing ts'
             end
           end
         else
-          if State.contribution_approval_request.reject(from: grunt_voter)
-            if ts = State.contribution_approval_request.id
-              client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Rejected by:` <@#{voter}>", attachments: [], as_user: false, thread_ts: ts)
-            else
-              p 'error: missing ts'
-            end
+          if ts = State.contribution_approval_request.id
+            client.chat_postEphemeral(channel: SLACK_CHANNEL, text: '`You already voted.`', attachment: [], as_user: false, user: grunt_voter.name, thread_ts: hard_coded_ts)
           else
-            if ts = State.contribution_approval_request.id
-              client.chat_postEphemeral(channel: SLACK_CHANNEL, text: '`You already voted.`', attachment: [], as_user: false, user: grunt_voter.name, thread_ts: ts)
-            else
-              p 'error: missing ts'
-            end
+            p 'error: missing ts'
           end
         end
-
-        return
+      else
+        if State.contribution_approval_request.reject(from: grunt_voter)
+          if ts = State.contribution_approval_request.id
+            client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Rejected by:` <@#{voter}>", attachments: [], as_user: false, thread_ts: ts)
+          else
+            p 'error: missing ts'
+          end
+        else
+          if ts = State.contribution_approval_request.id
+            client.chat_postEphemeral(channel: SLACK_CHANNEL, text: '`You already voted.`', attachment: [], as_user: false, user: grunt_voter.name, thread_ts: ts)
+          else
+            p 'error: missing ts'
+          end
+        end
       end
 
-      # contribution dialog submission
-      submitter = payload["user"]["id"]
-      time_in_hours = payload["submission"]["contribution_hours"]
-      description = payload["submission"]["contribution_description"]
-      contributed = payload["submission"]["contribution_to"]
-
-      grunt = State.team.find { |obj| obj.name == contributed }
-
-      return if grunt.nil?
-
-      State.contribution_approval_request = ContributionApprovalRequest.new(id: nil, time_in_hours: time_in_hours, beneficiary: grunt, approvers: State.team)
-      send_contribution_approval_request!(submitter: submitter, contributed: contributed, time_in_hours: time_in_hours, description: description)
-      p State.contribution_approval_request
+      return
     end
+
+    # contribution dialog submission
+    submitter = payload["user"]["id"]
+    time_in_hours = payload["submission"]["contribution_hours"]
+    description = payload["submission"]["contribution_description"]
+    contributed = payload["submission"]["contribution_to"]
+
+    grunt = State.team.find { |obj| obj.name == contributed }
+
+    return if grunt.nil?
+
+    State.contribution_approval_request = ContributionApprovalRequest.new(id: nil, time_in_hours: time_in_hours, beneficiary: grunt, approvers: State.team)
+    send_contribution_approval_request!(submitter: submitter, contributed: contributed, time_in_hours: time_in_hours, description: description)
+    p State.contribution_approval_request
   end
 
   def send_contribution_approval_request!(submitter:, contributed:, time_in_hours:, description:)
@@ -104,10 +104,6 @@ class ContributionsController < ApplicationController
     attachments = get_message_attachments
 
     client.chat_postMessage(channel: SLACK_CHANNEL, text: message, attachments: attachments, as_user: false)
-  end
-
-  def send_dialog!(trigger_id:)
-    client.dialog_open(trigger_id: trigger_id, dialog: get_dialog)
   end
 
   def stringify(pie, slice_in_pie, contributor)
