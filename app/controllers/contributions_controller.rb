@@ -4,7 +4,6 @@ require_relative '../models/state'
 
 class ContributionsController < ApplicationController
 
-  SLACK_CHANNEL   = ENV.fetch("SLACK_CHANNEL")
   SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
 
   def events
@@ -40,6 +39,8 @@ class ContributionsController < ApplicationController
 
   def vote(payload)
     voter = payload["user"]["id"]
+    origin = payload["channel"]["id"]
+
     grunt_voter = State.team.find do |g|
       g.name == voter
     end
@@ -49,23 +50,23 @@ class ContributionsController < ApplicationController
     if payload["actions"].first["name"] == "Approve"
       if State.contribution_approval_request.approve(from: grunt_voter)
         if ts = State.contribution_approval_request.id
-          client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Approved by:` <@#{voter}>", attachments: [], as_user: false, thread_ts: ts)
+          client.chat_postMessage(channel: origin, text: "`Approved by:` <@#{voter}>", attachments: [], as_user: false, thread_ts: ts)
         else
           p 'error: missing ts'
         end
 
         if State.contribution_approval_request.approved?
           if ts = State.contribution_approval_request.id
-            client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
+            client.chat_postMessage(channel: origin, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
             message = "`With this contribution, the pie's valuation is now estimated at $#{State.pie_estimated_valuation} USD.` :dollar:"
-            client.chat_postMessage(channel: SLACK_CHANNEL, text: message, attachments: [], as_user: false, thread_ts: ts)
+            client.chat_postMessage(channel: origin, text: message, attachments: [], as_user: false, thread_ts: ts)
           else
             p 'error: missing ts'
           end
         end
       else
         if ts = State.contribution_approval_request.id
-          client.chat_postEphemeral(channel: SLACK_CHANNEL, text: '`You already voted.`', attachment: [], as_user: false, user: grunt_voter.name, thread_ts: hard_coded_ts)
+          client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: grunt_voter.name, thread_ts: hard_coded_ts)
         else
           p 'error: missing ts'
         end
@@ -73,13 +74,13 @@ class ContributionsController < ApplicationController
     else
       if State.contribution_approval_request.reject(from: grunt_voter)
         if ts = State.contribution_approval_request.id
-          client.chat_postMessage(channel: SLACK_CHANNEL, text: "`Rejected by:` <@#{voter}>", attachments: [], as_user: false, thread_ts: ts)
+          client.chat_postMessage(channel: origin, text: "`Rejected by:` <@#{voter}>", attachments: [], as_user: false, thread_ts: ts)
         else
           p 'error: missing ts'
         end
       else
         if ts = State.contribution_approval_request.id
-          client.chat_postEphemeral(channel: SLACK_CHANNEL, text: '`You already voted.`', attachment: [], as_user: false, user: grunt_voter.name, thread_ts: ts)
+          client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: grunt_voter.name, thread_ts: ts)
         else
           p 'error: missing ts'
         end
@@ -113,7 +114,7 @@ class ContributionsController < ApplicationController
     message = get_message(submitter: submitter, contributed: contributed, time_in_hours: time_in_hours, slices_of_pie: slices_of_pie, description: description)
     attachments = get_message_attachments
 
-    client.chat_postMessage(channel: SLACK_CHANNEL, text: message, attachments: attachments, as_user: false)
+    client.chat_postMessage(channel: origin, text: message, attachments: attachments, as_user: false)
   end
 
   def stringify(pie, slice_in_pie, contributor)
