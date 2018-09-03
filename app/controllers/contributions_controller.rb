@@ -91,6 +91,7 @@ class ContributionsController < ApplicationController
   end
 
   def create(payload)
+    origin = payload["channel"]["id"]
     submitter = payload["user"]["id"]
     time_in_hours = payload["submission"]["contribution_hours"]
     description = payload["submission"]["contribution_description"]
@@ -106,10 +107,10 @@ class ContributionsController < ApplicationController
       beneficiary: grunt,
       approvers: State.team
     )
-    send_contribution_approval_request!(submitter: submitter, contributed: contributed, time_in_hours: time_in_hours, description: description)
+    send_contribution_approval_request!(origin: origin, submitter: submitter, contributed: contributed, time_in_hours: time_in_hours, description: description)
   end
 
-  def send_contribution_approval_request!(submitter:, contributed:, time_in_hours:, description:)
+  def send_contribution_approval_request!(origin:, submitter:, contributed:, time_in_hours:, description:)
     slices_of_pie = (100_000 * 2 / 2000) * time_in_hours.to_f
     message = get_message(submitter: submitter, contributed: contributed, time_in_hours: time_in_hours, slices_of_pie: slices_of_pie, description: description)
     attachments = get_message_attachments
