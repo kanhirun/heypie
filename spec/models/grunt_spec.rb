@@ -1,41 +1,52 @@
-require 'spec_helper'
+require 'rails_helper'
 
-require_relative '../../app/models/grunt'
+RSpec.describe Grunt, type: :model do
 
-RSpec.describe Grunt do
-
-  let(:grunt) do
-    Grunt.new(name: 'some-name')
-  end
-
-  it 'has a name assigned' do
-    grunt = Grunt.new(name: 'Alice')
-
-    expect(grunt.name).to eql 'Alice'
-  end
-
-  it 'has 0 slices of pie by default' do
-    expect(grunt.slices_of_pie).to eq 0
+  # Note:
+  # The `name` attribute is currently being used to identify
+  # the user's slack identifier.
+  describe '#name' do
+    it { should validate_presence_of :name }
+    it { should validate_uniqueness_of :name }
   end
 
   describe '==(other_grunt)' do
-    it 'is equal if names are equal' do
-      expect(Grunt.new(name: 'Alice')).to eq Grunt.new(name: 'Alice')
+    it 'returns true when their names match' do
+      a = Grunt.new(id: 1, base_salary: 1)
+      b = Grunt.new(id: 1, base_salary: 9999)
+      c = Grunt.new(id: 999)
+
+      expect(a).to eql b
+      expect(a).not_to eql c
+    end
+  end
+
+  describe '#slices_of_pie' do
+    it 'defaults to 0' do
+      expect(Grunt.new.slices_of_pie).to eql 0.0
     end
   end
 
   describe '#base_salary' do
-    it 'has a fixed salary of $100,000 USD' do
-      expect(grunt.base_salary).to eq 100_000
+    it 'defaults to $100,000 USD' do
+      expect(Grunt.new.base_salary).to eql 100_000.00
     end
+  end
 
-    it 'has a derived hourly rate based on that salary' do
-      expect(grunt.hourly_rate).to eq(100_000 * 2 / 2000.0)
+  describe '#hourly_rate' do
+    it 'is derived from a formula' do
+      grunt = Grunt.new
+      noncash_multiplier = 2
+
+      expect(grunt.hourly_rate).to eql(
+        grunt.base_salary * noncash_multiplier / 2000.0
+      )
     end
   end
 
   describe '#contribute(time_in_hours:)' do
     it "doesn't change if no time was spent working" do
+      grunt = Grunt.new
       zero = 0
 
       expect do
@@ -44,11 +55,12 @@ RSpec.describe Grunt do
     end
 
     it 'increases slices of pie based on their hourly rate' do
-      grunt = Grunt.new(name: "some-name")
+      grunt = Grunt.new
+      hours = 0.75
 
-      grunt.contribute(time_in_hours: 22)
+      grunt.contribute(time_in_hours: hours)
 
-      expect(grunt.slices_of_pie).to eql(grunt.hourly_rate * 22)
+      expect(grunt.slices_of_pie).to eql(grunt.hourly_rate * hours)
     end
   end
 end

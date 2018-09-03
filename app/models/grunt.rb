@@ -1,24 +1,19 @@
-class Grunt
-  attr_reader :base_salary, :hourly_rate, :slices_of_pie, :name
+require_relative 'application_record'
+
+class Grunt < ApplicationRecord
 
   NONCASH_MULTIPLIER = 2  # todo: this should probably be defined at the project level
 
-  def initialize(name:, base_salary: 100_000.0)
-    @name = name
-    @base_salary = base_salary
-    @hourly_rate = base_salary * NONCASH_MULTIPLIER / 2000.0
-    @slices_of_pie = 0
-  end
+  attribute :slices_of_pie, :float, default: 0.0
+  attribute :base_salary, :float, default: 100_000
+
+  validates :name, presence: true, uniqueness: true
 
   def contribute(time_in_hours:)
-    return if time_in_hours.to_f.zero?
-
-    @slices_of_pie += (@hourly_rate.to_f * time_in_hours.to_f)
+    self.slices_of_pie += (hourly_rate * time_in_hours)
   end
 
-  # comparing grunts
-  def ==(other)
-    @name == other.name
+  def hourly_rate
+    base_salary * NONCASH_MULTIPLIER / 2000.0  # todo: I forgot how this 2000.0 is computed by Moyer?
   end
 end
-
