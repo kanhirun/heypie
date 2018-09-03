@@ -1,6 +1,7 @@
-require_relative './grunt'
+require_relative 'application_record'
+require_relative 'grunt'
 
-class ContributionApprovalRequest
+class ContributionApprovalRequest < ApplicationRecord
 
   attr_accessor :id
 

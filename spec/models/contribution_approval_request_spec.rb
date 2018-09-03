@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'rails_helper'
 
 require_relative '../../app/models/contribution_approval_request'
 
@@ -128,9 +128,9 @@ RSpec.describe ContributionApprovalRequest do
 
     sut = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
 
-    expect(contributor.slices_of_pie).to eql 0
+    expect(contributor.slices_of_pie).to eql 0.0
     expect(sut.slices_of_pie).to eql(time_in_hours * contributor.hourly_rate)
-    expect(contributor.slices_of_pie).to eql 0
+    expect(contributor.slices_of_pie).to eql 0.0
   end
 
   xit 'errors when the contributor is not part of the approvers list' do
@@ -221,7 +221,7 @@ RSpec.describe ContributionApprovalRequest do
 
     c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: justin, time_in_hours: time_in_hours)
 
-    expect(justin.slices_of_pie).to eql(0)
+    expect(justin.slices_of_pie).to eql 0.0
 
     c.approve(from: kel)
     c.approve(from: justin)

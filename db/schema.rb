@@ -10,10 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_09_03_141658) do
+ActiveRecord::Schema.define(version: 2018_09_03_152415) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "contribution_approval_requests", force: :cascade do |t|
+  end
 
   create_table "grunts", force: :cascade do |t|
     t.string "name"
