@@ -17,8 +17,8 @@ production:
   encoding: unicode
   database: heypie_production
   pool: 5
-  username: changeme
-  password:
+  username: <%= ENV.fetch('POSTGRES_USERNAME') %>
+  password: <%= ENV.fetch('POSTGRES_PASSWORD') %>
 
 development:
   adapter: postgresql
