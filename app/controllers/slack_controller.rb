@@ -89,7 +89,7 @@ class SlackController < ApplicationController
       as_user: false
     )
 
-    render status: 200 and return
+    render status: 200
   end
 
   def client
