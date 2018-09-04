@@ -30,12 +30,6 @@ class ContributionsController < ApplicationController
     end
   end
 
-  def new
-    trigger_id = params["trigger_id"]
-
-    client.dialog_open(trigger_id: trigger_id, dialog: get_dialog)
-  end
-
   def vote(payload)
     user_id = payload["user"]["id"]
     origin = payload["channel"]["id"]
@@ -138,34 +132,6 @@ class ContributionsController < ApplicationController
     description.split("\n").map do |line|
       "> #{line}"
     end.join("\n")
-  end
-
-  def get_dialog
-    {
-      "callback_id": "ryde-46e2b0",
-      "title": "Hey! Ready to request?", # 24 char
-      "submit_label": "Yeah_I_am!",  # one word contraint
-      "elements": [
-        {
-          "label": "Who did the work?", # 24 char
-          "name": "contribution_to",
-          "type": "select",
-          "data_source": "users"
-        },
-        {
-          "label": "How long was it? ex 1.75",
-          "type": "text",
-          "subtype": "number",
-          "name": "contribution_hours"
-        },
-        {
-          "label": "Describe it for me.",
-          "type": "textarea",
-          "name": "contribution_description",
-          "hint": "Provide additional information if needed."
-        }
-      ]
-    }
   end
 
   def get_message(submitter:, contributed:, time_in_hours:, slices_of_pie:, description:)
