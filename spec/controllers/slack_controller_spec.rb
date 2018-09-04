@@ -60,28 +60,40 @@ RSpec.describe SlackController, type: :controller do
       expect(response).to have_http_status :not_found
     end
 
-   it 'returns 200 OK if user is found' do
-     Grunt.create!(name: "Alice")
+    it 'returns 400 BAD REQUEST if the request data is unexpected' do
+      Grunt.create!(name: "Alice")
 
-     client = instance_double('Slack::Client')
-     controller.client = client
-     alice = "Alice"
-     params = {
-       "payload": {
-         "type": "dialog_submission",
-         "channel": { "id": "some-channel-id" },
-         "user": { "id": "some-user-id" },
-         "submission": {
-           "contribution_hours": "22.0",
-           "contribution_description": "Lorem ipsum",
-           "contribution_to": alice
-         }
-       }
-     }
+      client = instance_double('Slack::Client')
+      controller.client = client
+      params = {}
 
-     post :dialog_submission, params: params
+      post :dialog_submission, params: params
 
-     expect(response).to have_http_status :ok
-   end
+      expect(response).to have_http_status :bad_request
+    end
+
+    it 'returns 200 OK if user is found' do
+      Grunt.create!(name: "Alice")
+
+      client = instance_double('Slack::Client')
+      controller.client = client
+      alice = "Alice"
+      params = {
+        "payload": {
+          "type": "dialog_submission",
+          "channel": { "id": "some-channel-id" },
+          "user": { "id": "some-user-id" },
+          "submission": {
+            "contribution_hours": "22.0",
+            "contribution_description": "Lorem ipsum",
+            "contribution_to": alice
+          }
+        }
+      }
+
+      post :dialog_submission, params: params
+
+      expect(response).to have_http_status :ok
+    end
   end
 end

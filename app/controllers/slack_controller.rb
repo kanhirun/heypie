@@ -34,7 +34,12 @@ class SlackController < ApplicationController
   end
 
   def dialog_submission
-    nominated = params["payload"]["submission"]["contribution_to"]
+    begin
+      nominated = params.fetch("payload").fetch("submission").fetch("contribution_to")
+    rescue KeyError
+      # todo use a logger to capture error
+      render status: 400 and return
+    end
 
     beneficiary = Grunt.find_by(name: nominated)
 
