@@ -1,9 +1,10 @@
 class SlackController < ApplicationController
 
-  SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
+  SLACK_BOT_TOKEN = ENV["SLACK_BOT_TOKEN"]
 
   def heypie_command
-    trigger_id = params["trigger_id"]
+    trigger_id = params.fetch("trigger_id")
+
     dialog = {
         "callback_id": "ryde-46e2b0",
         "title": "Hey! Ready to request?", # 24 char
@@ -30,12 +31,21 @@ class SlackController < ApplicationController
         ]
     }
 
+    # todo: error handle
     client.dialog_open(trigger_id: trigger_id, dialog: dialog)
+
+    render status: 200
   end
 
   def dialog_submission
     begin
-      nominated = params.fetch("payload").fetch("submission").fetch("contribution_to")
+      deserialized = JSON(params.fetch("payload"))
+
+      nominated     = deserialized.fetch("submission").fetch("contribution_to")
+      origin        = deserialized.fetch("channel").fetch("id")
+      submitter     = deserialized.fetch("user").fetch("id")
+      time_in_hours = deserialized.fetch("submission").fetch("contribution_hours")
+      description   = deserialized.fetch("submission").fetch("contribution_description")
     rescue KeyError
       # todo use a logger to capture error
       render status: 400 and return
@@ -45,7 +55,41 @@ class SlackController < ApplicationController
 
     render status: 404 and return if beneficiary.nil?
 
-    render status: 200
+    _ = ContributionApprovalRequest.new
+    message = "Testing"
+    attachments = [
+      {
+        fallback: "Make your decisions here: https://thepieslicer.com/home/2580",
+        callback_id: "contribution_approval_request",
+        text: "Would you like to *approve*, *amend*, or *reject* this contribution?",
+        actions: [
+          {
+            type: "button",
+            name: "Approve",
+            text: "Approve :heavy_check_mark:",
+            style: "primary",
+            value: "approve"
+          },
+          {
+            type: "button",
+            name: "Reject",
+            text: "Reject :no_entry_sign:",
+            style: "danger",
+            value: "reject"
+          }
+        ]
+      }
+    ]
+
+    # todo: capture slack error
+    client.chat_postMessage(
+      channel: origin,
+      text: message,
+      attachments: attachments,
+      as_user: false
+    )
+
+    render status: 200 and return
   end
 
   def client

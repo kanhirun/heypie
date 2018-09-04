@@ -34,6 +34,17 @@ RSpec.describe SlackController, type: :controller do
       expect(client).to receive(:dialog_open).with({ trigger_id: "some-trigger-id", dialog: dialog })
 
       post :heypie_command, params: { "command": '/heypie', "trigger_id": "some-trigger-id"}
+
+      expect(response).to have_http_status :ok
+    end
+
+    xit 'returns BAD REQUEST if request is messed up' do
+      client = instance_double('Slack::Client')
+      controller.client = client
+
+      post :heypie_command, params: {}
+
+      expect(response).to have_http_status :bad_request
     end
   end
 
@@ -42,17 +53,18 @@ RSpec.describe SlackController, type: :controller do
       client = instance_double('Slack::Client')
       controller.client = client
       does_not_exist = "DOES_NOT_EXIST"
-      params = {
-        "payload": {
-          "type": "dialog_submission",
-          "channel": { "id": "some-channel-id" },
-          "user": { "id": "some-user-id" },
-          "submission": {
-            "contribution_hours": "22.0",
-            "contribution_description": "Lorem ipsum",
-            "contribution_to": does_not_exist
-          }
+      jsonified = {
+        "type": "dialog_submission",
+        "channel": { "id": "some-channel-id" },
+        "user": { "id": "some-user-id" },
+        "submission": {
+          "contribution_hours": "22.0",
+          "contribution_description": "Lorem ipsum",
+          "contribution_to": does_not_exist
         }
+      }
+      params = {
+        "payload": JSON(jsonified)
       }
 
       post :dialog_submission, params: params
@@ -75,20 +87,21 @@ RSpec.describe SlackController, type: :controller do
     it 'returns 200 OK if user is found' do
       Grunt.create!(name: "Alice")
 
-      client = instance_double('Slack::Client')
+      client = instance_double('Slack::Client', chat_postMessage: nil)
       controller.client = client
       alice = "Alice"
-      params = {
-        "payload": {
-          "type": "dialog_submission",
-          "channel": { "id": "some-channel-id" },
-          "user": { "id": "some-user-id" },
-          "submission": {
-            "contribution_hours": "22.0",
-            "contribution_description": "Lorem ipsum",
-            "contribution_to": alice
-          }
+      jsonified = {
+        "type": "dialog_submission",
+        "channel": { "id": "some-channel-id" },
+        "user": { "id": "some-user-id" },
+        "submission": {
+          "contribution_hours": "22.0",
+          "contribution_description": "Lorem ipsum",
+          "contribution_to": alice
         }
+      }
+      params = {
+        "payload": JSON(jsonified)
       }
 
       post :dialog_submission, params: params
