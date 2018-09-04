@@ -10,18 +10,37 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_09_03_152415) do
+ActiveRecord::Schema.define(version: 2018_09_04_003331) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "contribution_approval_requests", force: :cascade do |t|
+    t.integer "submitter_id"
   end
 
   create_table "grunts", force: :cascade do |t|
     t.string "name"
+    t.integer "slices_of_pie"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
+  create_table "nominations", force: :cascade do |t|
+    t.integer "grunt_id"
+    t.integer "contribution_approval_request_id"
+    t.integer "slices_of_pie_to_be_rewarded"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "votes", force: :cascade do |t|
+    t.integer "grunt_id"
+    t.integer "contribution_approval_request_id"
+    t.integer "status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  add_foreign_key "contribution_approval_requests", "grunts", column: "submitter_id"
 end

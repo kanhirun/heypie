@@ -2,231 +2,197 @@ require 'rails_helper'
 
 require_relative '../../app/models/contribution_approval_request'
 
+# todo: improve API so that we can represent the rewards
 RSpec.describe ContributionApprovalRequest do
-  it 'takes in a few params' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approvers = [
-      contributor,
-      Grunt.new(name: 'otherGrunt'),
-      Grunt.new(name: 'anotherGrunt'),
-    ]
-    time_in_hours = 10
+  it { should belong_to :submitter }
+  it { should have_many :nominations }
+  it { should have_many :nominated_grunts }
+  it { should have_many :votes }
+  it { should have_many :voters }
 
-    ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
+  describe '#status' do
+    it 'defaults to pending' do
+      some_voters = [Grunt.new, Grunt.new]
+      with_voters = ContributionApprovalRequest.new(voters: some_voters)
+
+      expect(with_voters.status).to eql 'pending'
+    end
+
+    it 'returns approved if there are no voters' do
+      no_voters = ContributionApprovalRequest.new(voters: [])
+
+      expect(no_voters.status).to eql 'approved'
+    end
+
+    it 'returns rejected if there is just one rejected vote' do
+      g1, g2 = [ Grunt.create!(name: 'g1'), Grunt.create!(name: 'g2') ]
+      one_reject = ContributionApprovalRequest.create!(submitter: Grunt.new, voters: [g1, g2])
+      one_reject.votes.create! [
+        { status: "approved", grunt: g1 },
+        { status: "rejected", grunt: g2 }
+      ]
+
+      expect(one_reject.status).to eql 'rejected'
+    end
   end
 
-  it 'should only allow voters to vote once' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    g1 = Grunt.new(name: 'otherGrunt')
-    g2 = Grunt.new(name: 'anotherGrunt')
-    approvers = [ contributor, g1, g2 ]
-    time_in_hours = 10
+  describe '#process' do
+    it 'rewards the beneficiaries with slices of pie' do
+      beneficiary = Grunt.create!(name: 'some-beneficiary')
+      reward = 100.00
 
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
+      subject = ContributionApprovalRequest.create!(
+        submitter: Grunt.new,
+        voters: []
+      )
 
-    expect(c.voted_by?(contributor)).to be false
-    expect(c.voted_by?(g1)).to be false
-    expect(c.voted_by?(g2)).to be false
-    c.approve(from: contributor)
-    c.approve(from: g1)
-    c.approve(from: g2)
-    expect(c.voted_by?(contributor)).to be true
-    expect(c.voted_by?(g1)).to be true
-    expect(c.voted_by?(g2)).to be true
+      subject.nominations.create!({
+        contribution_approval_request: subject,
+        grunt: beneficiary,
+        slices_of_pie_to_be_rewarded: reward
+      })
 
-    expect(c.approved?).to be true
+      expect do
+        subject.process
+        beneficiary.reload
+      end.to change{ beneficiary.slices_of_pie }.from(0.0).to(100.0)
+    end
 
-    expect(contributor.slices_of_pie).to eql(100_000 * 2 / 2000.0 * time_in_hours)
+    it 'cannot process more than once' do
+      beneficiary = Grunt.create!(name: 'some-beneficiary')
+      reward = 100.00
+
+      subject = ContributionApprovalRequest.create!(
+        submitter: Grunt.new,
+        voters: []
+      )
+
+      subject.nominations.create!({
+        contribution_approval_request: subject,
+        grunt: beneficiary,
+        slices_of_pie_to_be_rewarded: reward
+      })
+
+      subject.process
+      beneficiary.reload
+
+      expect do
+        subject.process
+        beneficiary.reload
+      end.not_to change{ beneficiary.slices_of_pie }
+    end
+
+    it 'returns false if voting is incomplete' do
+      subject = ContributionApprovalRequest.create!(
+        submitter: Grunt.new,
+        voters: [ Grunt.create!(name: 'Alice'), Grunt.create!(name: 'Bob') ]
+      )
+
+      expect(subject.status).to eql "pending"
+
+      results = subject.process
+
+      expect(results).to be false
+    end
   end
 
-  it 'returns false if already set before' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approvers = [
-      contributor,
-      Grunt.new(name: 'otherGrunt'),
-      Grunt.new(name: 'anotherGrunt'),
-    ]
-    time_in_hours = 10
+  describe '#approve!(from:)' do
+    it 'sets a result' do
+      subject = ContributionApprovalRequest.create!(submitter: Grunt.new)
+      a_voter = subject.voters.create!(name: "a-voter")
+      vote = Vote.find_by!(grunt: a_voter)
 
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
+      subject.approve!(from: a_voter)
 
-    c.approve(from: contributor)
-    results = c.approve(from: contributor)
+      expect do
+        vote.reload
+      end.to change{ vote.status }.from("pending").to("approved")
+    end
 
-    expect(results).to eql false
+    it 'raises an error when a voter is an outsider' do
+      outsider = Grunt.new
+      nobody = []
+      subject = ContributionApprovalRequest.new(voters: nobody)
+
+      expect do
+        subject.approve!(from: outsider)
+      end.to raise_error(CannotVoteIfYouAreAnOutsiderError)
+    end
+
+    it 'raises an error if voter already voted' do
+      voter = Grunt.create!(name: 'some-grunt')
+      subject = ContributionApprovalRequest.create!(submitter: Grunt.new, voters: [voter])
+
+      expect do
+        subject.approve!(from: voter)
+        subject.approve!(from: voter)
+      end.to raise_error(AlreadyVotedError)
+    end
   end
 
-  it 'returns true for reject too' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approvers = [
-      contributor,
-      Grunt.new(name: 'otherGrunt'),
-      Grunt.new(name: 'anotherGrunt'),
-    ]
-    time_in_hours = 10
+  describe '#reject!(from:)' do
+    it 'sets a result' do
+      subject = ContributionApprovalRequest.create!(submitter: Grunt.new)
+      a_voter = subject.voters.create!(name: "a-voter")
+      vote = Vote.find_by!(grunt: a_voter)
 
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
+      subject.reject!(from: a_voter)
 
-    results = c.reject(from: contributor)
+      expect do
+        vote.reload
+      end.to change{ vote.status }.from("pending").to("rejected")
+    end
 
-    expect(results).to eql true
+    it 'raises an error when a voter is an outsider' do
+      outsider = Grunt.new
+      nobody = []
+      subject = ContributionApprovalRequest.new(voters: nobody)
+
+      expect do
+        subject.reject!(from: outsider)
+      end.to raise_error(CannotVoteIfYouAreAnOutsiderError)
+    end
+
+    it 'raises an error if voter already voted' do
+      voter = Grunt.create!(name: 'some-grunt')
+      subject = ContributionApprovalRequest.create!(submitter: Grunt.new, voters: [voter])
+      vote = Vote.find_by!(grunt: voter)
+
+      expect do
+        subject.reject!(from: voter)
+        subject.approve!(from: voter)
+      end.to raise_error(AlreadyVotedError)
+
+      vote.reload
+
+      expect(vote.status).to eql "rejected"
+    end
   end
 
-  it 'returns false for reject too' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approvers = [
-      contributor,
-      Grunt.new(name: 'otherGrunt'),
-      Grunt.new(name: 'anotherGrunt'),
-    ]
-    time_in_hours = 10
+  context 'some approvers' do
+    let(:some_approvers) { [Grunt.new, Grunt.new] }
 
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
+    it 'credits only if 100% approval' do
+      # a_beneficiary = Grunt.new
+      # subject = ContributionApprovalRequest.new(
+      #   nominated_grunts: [a_beneficiary],
+      #   voters: some_approvers
+      # )
 
-    c.reject(from: contributor)
-    results = c.reject(from: contributor)
+      # # 100% approval
+      # some_approvers.each do |voter|
+      #   subject.approve!(from: voter)
+      # end
 
-    expect(results).to eql false
+      # expect{ subject.run! }.to change {
+      #   a_beneficiary.slices_of_pie
+      # }
+    end
+
+    it 'does not credit if not 100% approval' do
+    end
   end
 
-  it 'should only allow voters to vote once' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approvers = [
-      contributor,
-      Grunt.new(name: 'otherGrunt'),
-      Grunt.new(name: 'anotherGrunt'),
-    ]
-    time_in_hours = 10
-
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
-
-    expect(c.voted_by?(contributor)).to be false
-    c.reject(from: contributor)
-    expect(c.voted_by?(contributor)).to be true
-  end
-
-  it 'has an id that we can use to send messages (on comment threads) to slack' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approvers = [
-      contributor,
-      Grunt.new(name: 'otherGrunt'),
-      Grunt.new(name: 'anotherGrunt'),
-    ]
-    time_in_hours = 10
-
-    ContributionApprovalRequest.new(id: 'some-timestamp', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
-  end
-
-  it '#slices_of_pie' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approvers = [
-      contributor,
-      Grunt.new(name: 'otherGrunt'),
-      Grunt.new(name: 'anotherGrunt'),
-    ]
-    time_in_hours = 10
-
-    sut = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
-
-    expect(contributor.slices_of_pie).to eql 0.0
-    expect(sut.slices_of_pie).to eql(time_in_hours * contributor.hourly_rate)
-    expect(contributor.slices_of_pie).to eql 0.0
-  end
-
-  xit 'errors when the contributor is not part of the approvers list' do
-  end
-
-  it '#approved? returns false by default' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approvers = [
-      contributor,
-      Grunt.new(name: 'otherGrunt'),
-    ]
-    time_in_hours = 10
-
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
-
-    expect(c.approved?).to be(false)
-  end
-
-  it '#approved? returns true when all approvers are happy' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approver = Grunt.new(name: 'otherGrunt')
-    approvers = [
-      contributor,
-      approver
-    ]
-    time_in_hours = 10
-
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
-
-    c.approve(from: approver)
-    c.approve(from: contributor)
-
-    expect(c.approved?).to be(true)
-  end
-
-  it '#approved? returns true when all approvers are happy' do
-    contributor = Grunt.new(name: 'aHappyGrunt')
-    approver = Grunt.new(name: 'otherGrunt')
-    approver2 = Grunt.new(name: 'yetAnotherGrunt')
-    approvers = [
-      contributor,
-      approver,
-      approver2
-    ]
-    time_in_hours = 10
-
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: contributor, time_in_hours: time_in_hours)
-
-    c.approve(from: approver)
-
-    expect(c.approved?).to be(false)
-  end
-
-  it '#reject sets the property to false' do
-    beneficiary = Grunt.new(name: 'aHappyGrunt')
-    voter = Grunt.new(name: 'otherGrunt')
-    approvers = [
-      beneficiary,
-      voter
-    ]
-    time_in_hours = 10
-
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: beneficiary, time_in_hours: time_in_hours)
-
-    expect(c.approved?).to be(false)
-    expect(c.rejected?).to be(false)
-
-    c.approve(from: voter)
-    c.approve(from: beneficiary)
-
-    expect(c.approved?).to be(true)
-    expect(c.rejected?).to be(false)
-
-    c.reject(from: voter)
-
-    expect(c.approved?).to be(true)
-    expect(c.rejected?).to be(false)
-  end
-
-  it 'if everythign is approved then they get slices of pie' do
-    justin = Grunt.new(name: "Justin")
-    kel = Grunt.new(name: "Kel")
-    approvers = [
-      kel,
-      justin
-    ]
-    time_in_hours = 2  # office hours
-
-    c = ContributionApprovalRequest.new(id: 'some-id', approvers: approvers, beneficiary: justin, time_in_hours: time_in_hours)
-
-    expect(justin.slices_of_pie).to eql 0.0
-
-    c.approve(from: kel)
-    c.approve(from: justin)
-
-    expect(justin.hourly_rate).to eql(100_000.0 * 2 / 2000.0)
-    expect(justin.slices_of_pie).to eql(justin.hourly_rate * time_in_hours)
+  context 'no approvers' do
   end
 end

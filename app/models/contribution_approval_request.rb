@@ -1,74 +1,71 @@
 require_relative 'application_record'
 require_relative 'grunt'
 
+class CannotVoteIfYouAreAnOutsiderError < StandardError; end
+class AlreadyVotedError < StandardError; end
+class NotFinishedVotingError < StandardError; end
+
 class ContributionApprovalRequest < ApplicationRecord
 
-  attr_accessor :id
+  belongs_to :submitter, class_name: 'Grunt', foreign_key: :submitter_id
+  has_many :nominations
+  has_many :nominated_grunts, through: :nominations, source: :grunt
+  has_many :votes
+  has_many :voters, through: :votes, source: :grunt
 
-  def initialize(id:, time_in_hours:, beneficiary:, approvers:)
-    @id = id
-    @time_in_hours = time_in_hours.to_f
-    @beneficiary = beneficiary
+  attribute :processed, :boolean, default: false
 
-    @approved = {}
-    approvers.each do |approver|
-      @approved[approver] = nil
+  # an enum - pending, approved, or rejected
+  def status
+    return "approved" if voters.empty?
+
+    statuses = votes.map(&:status).uniq
+
+    case statuses
+    when ["approved"]
+      return "approved"
+    when ["pending"]
+      return "pending"
+    else
+      return "rejected"
     end
   end
 
-  # the slices of pie to be awarded if it is approved
-  # probably need guard to see if they are part of the approvers list
-  def slices_of_pie
-    @beneficiary.hourly_rate * @time_in_hours
-  end
+  def process
+    return false if status == "pending" || status == "rejected" || processed
 
-  def approved?
-    @approved.all? do |k, v|
-      v == true
+    nominations.each do |nomination|
+      beneficiary = nomination.grunt
+      reward = nomination.slices_of_pie_to_be_rewarded  # todo
+
+      beneficiary.slices_of_pie += reward
+      beneficiary.save!
     end
-  end
 
-  def voted_by?(voter)
-    @approved[voter] != nil
-  end
-
-  def approve(from:)
-    return false if @approved[from] != nil
-
-    @approved[from] = true
-
-    if approved?
-      @beneficiary.contribute(time_in_hours: @time_in_hours)
-    end
+    self.processed = true
 
     return true
   end
 
-  def rejected?
-    @approved.any? do |k, v|
-      v == false
+  def approve!(from:)
+    vote = get_vote!(from: from)
+    vote.status = "approved"
+    vote.save!
+  end
+
+  def reject!(from:)
+    vote = get_vote!(from: from)
+    vote.status = "rejected"
+    vote.save!
+  end
+
+  private
+    def get_vote!(from:)
+      vote = Vote.find_by(grunt: from)
+
+      raise CannotVoteIfYouAreAnOutsiderError.new if voters.exclude?(from) or vote.nil?
+      raise AlreadyVotedError.new if vote.already_voted?
+
+      vote
     end
-  end
-
-  def reject(from:)
-    return false if @approved[from] != nil
-
-    @approved[from] = false
-
-    return true
-  end
-
-  def requested_changes
-    msg = ""
-
-    @approved.each do |aGrunt, _|
-      if @beneficiary == aGrunt
-        msg += "> <@#{aGrunt.name}>: #{aGrunt.slices_of_pie} + #{@time_in_hours * aGrunt.hourly_rate} = #{aGrunt.slices_of_pie + (@time_in_hours * aGrunt.hourly_rate)} :pie:\n"
-      else
-        msg += "> <@#{aGrunt.name}>: #{aGrunt.slices_of_pie} :pie:\n"
-      end
-    end
-
-    return msg
-  end
 end

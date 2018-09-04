@@ -14,8 +14,7 @@ class ContributionsController < ApplicationController
     end
 
     ts = params["event"]["ts"]
-    State.contribution_approval_request.id = ts
-    p State.contribution_approval_request
+    ContributionApprovalRequest.last.id = ts
   end
 
   # TODO: Consider using constraints to separate calls from Slack
@@ -38,12 +37,10 @@ class ContributionsController < ApplicationController
   end
 
   def vote(payload)
-    voter = payload["user"]["id"]
+    user_id = payload["user"]["id"]
     origin = payload["channel"]["id"]
 
-    grunt_voter = State.team.find do |g|
-      g.name == voter
-    end
+    grunt_voter = Grunt.find_by(name: user_id)
 
     return if grunt_voter.nil?
 
