@@ -86,14 +86,16 @@ RSpec.describe SlackController, type: :controller do
 
     it 'returns 200 OK if user is found' do
       Grunt.create!(name: "Alice")
+      Grunt.create!(name: "Submitter")
 
       client = instance_double('Slack::Client', chat_postMessage: nil)
       controller.client = client
       alice = "Alice"
+      submitter = "Submitter"
       jsonified = {
         "type": "dialog_submission",
         "channel": { "id": "some-channel-id" },
-        "user": { "id": "some-user-id" },
+        "user": { "id": submitter},
         "submission": {
           "contribution_hours": "22.0",
           "contribution_description": "Lorem ipsum",
@@ -106,7 +108,9 @@ RSpec.describe SlackController, type: :controller do
 
       post :dialog_submission, params: params
 
-      expect(response).to have_http_status :ok
+      # todo: not sure why slack doesn't like this?
+      # expect(response).to have_http_status :ok
+      expect(response).to have_http_status :no_content
     end
   end
 end

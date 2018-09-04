@@ -41,22 +41,46 @@ class SlackController < ApplicationController
     begin
       deserialized = JSON(params.fetch("payload"))
 
-      nominated     = deserialized.fetch("submission").fetch("contribution_to")
-      origin        = deserialized.fetch("channel").fetch("id")
-      submitter     = deserialized.fetch("user").fetch("id")
-      time_in_hours = deserialized.fetch("submission").fetch("contribution_hours")
-      description   = deserialized.fetch("submission").fetch("contribution_description")
+      nominated      = deserialized.fetch("submission").fetch("contribution_to")
+      origin         = deserialized.fetch("channel").fetch("id")
+      submitter_name = deserialized.fetch("user").fetch("id")
+      time_in_hours  = deserialized.fetch("submission").fetch("contribution_hours")
+      description    = deserialized.fetch("submission").fetch("contribution_description")
     rescue KeyError
       # todo use a logger to capture error
       render status: 400 and return
     end
 
     beneficiary = Grunt.find_by(name: nominated)
+    submitter = Grunt.find_by(name: submitter_name)
 
     render status: 404 and return if beneficiary.nil?
 
-    _ = ContributionApprovalRequest.new
-    message = "Testing"
+    # ew, api
+    req = ContributionApprovalRequest.create!(
+      submitter: submitter,
+      voters: Grunt.all.to_a
+    )
+    req.nominations.create!({
+      contribution_approval_request: req,
+      grunt: beneficiary,
+      slices_of_pie_to_be_rewarded: (time_in_hours.to_f * beneficiary.hourly_rate)
+    })
+    bot_username = "hey_pie"
+    message = <<~SLACK_TEMPLATE
+      _*TxHash:* <https://etherscan.io/tx/0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842|0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842>_
+      _*From:* <@#{submitter.name}> (<https://etherscan.io/address/0x1038ae6fcd73a1846f8ea6ac1ff3a4fe57eb76d7|0x1038ae6fcd73a1846f8ea6ac1ff3a4fe57eb76d7>)_
+      _*To:* <@#{bot_username}> (<https://etherscan.io/address/0x8d12a197cb00d4747a1fe03395095ce2a5cc6819#code|0x8d12a197cb00d4747a1fe03395095ce2a5cc6819>)_
+      _*SocialContract (d190379):* (<https://github.com/kanhirun/hey-pie-social-contract/blame/d190379a0dd2640df5bc6d9f1e08312a99db914c/README.md|view>) (<https://github.com/kanhirun/hey-pie-social-contract/edit/master/README.md|edit>)_
+
+      *Request:*
+      > <@#{submitter.name}> requested approval for *#{time_in_hours} HOURS* which would award *#{time_in_hours.to_f * beneficiary.hourly_rate} SLICES OF PIE* to *<@#{beneficiary.name}>*
+      *Description:*
+      > #{description}
+      *Requested Changes:*
+      > WIP
+    SLACK_TEMPLATE
+
     attachments = [
       {
         fallback: "Make your decisions here: https://thepieslicer.com/home/2580",
@@ -88,8 +112,6 @@ class SlackController < ApplicationController
       attachments: attachments,
       as_user: false
     )
-
-    render status: 200
   end
 
   def client
