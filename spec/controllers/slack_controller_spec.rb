@@ -36,4 +36,52 @@ RSpec.describe SlackController, type: :controller do
       post :heypie_command, params: { "command": '/heypie', "trigger_id": "some-trigger-id"}
     end
   end
+
+  describe 'POST /slack/interactive_messages/dialog_submission' do
+    it "returns 404 error when user doesn't exist" do
+      client = instance_double('Slack::Client')
+      controller.client = client
+      does_not_exist = "DOES_NOT_EXIST"
+      params = {
+        "payload": {
+          "type": "dialog_submission",
+          "channel": { "id": "some-channel-id" },
+          "user": { "id": "some-user-id" },
+          "submission": {
+            "contribution_hours": "22.0",
+            "contribution_description": "Lorem ipsum",
+            "contribution_to": does_not_exist
+          }
+        }
+      }
+
+      post :dialog_submission, params: params
+
+      expect(response).to have_http_status :not_found
+    end
+
+   it 'returns 200 OK if user is found' do
+     Grunt.create!(name: "Alice")
+
+     client = instance_double('Slack::Client')
+     controller.client = client
+     alice = "Alice"
+     params = {
+       "payload": {
+         "type": "dialog_submission",
+         "channel": { "id": "some-channel-id" },
+         "user": { "id": "some-user-id" },
+         "submission": {
+           "contribution_hours": "22.0",
+           "contribution_description": "Lorem ipsum",
+           "contribution_to": alice
+         }
+       }
+     }
+
+     post :dialog_submission, params: params
+
+     expect(response).to have_http_status :ok
+   end
+  end
 end

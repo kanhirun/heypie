@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   # post '/contributions/new', to: 'contributions#new'
 
   post '/slack/slash_commands/heypie', to: 'slack#heypie_command'
+  post '/slack/interactive_components/dialog_submission', to: 'slack#dialog_submission'
 
   post '/events', to: 'contributions#events'
 end
