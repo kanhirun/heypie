@@ -33,8 +33,6 @@ class SlackController < ApplicationController
 
     # todo: error handle
     client.dialog_open(trigger_id: trigger_id, dialog: dialog)
-
-    render status: 200
   end
 
   def dialog_submission
@@ -78,7 +76,7 @@ class SlackController < ApplicationController
       *Description:*
       > #{description}
       *Requested Changes:*
-      > WIP
+      #{get_requested_changes(req: req)}
     SLACK_TEMPLATE
 
     attachments = [
@@ -112,6 +110,22 @@ class SlackController < ApplicationController
       attachments: attachments,
       as_user: false
     )
+  end
+
+  def get_requested_changes(req:)
+    msg = ""
+
+    req.voters.each do |voter|
+      if nomination = Nomination.find_by(grunt: voter, contribution_approval_request: req)
+        start = nomination.grunt.slices_of_pie
+        diff = nomination.slices_of_pie_to_be_rewarded
+        msg += "> <@#{nomination.grunt.name}>: #{start} + #{diff} = #{start + diff} :pie:\n"
+      else
+        msg += "> <@#{voter.name}>: #{voter.slices_of_pie} + 0 = #{voter.slices_of_pie} :pie:\n"
+      end
+    end
+
+    return msg
   end
 
   def client

@@ -113,4 +113,29 @@ RSpec.describe SlackController, type: :controller do
       expect(response).to have_http_status :no_content
     end
   end
+
+  describe '#get_requested_changes(req:)' do
+    it "returns each person's pie" do
+      alice = Grunt.new(name: "alice")
+      bob = Grunt.new(name: "bob")
+      alice.slices_of_pie = 258
+      bob.slices_of_pie = 10
+      req = ContributionApprovalRequest.create!(
+        submitter: Grunt.new,
+        voters: [bob, alice]
+      )
+
+      req.nominations.create!({
+        grunt: bob,
+        slices_of_pie_to_be_rewarded: 100
+      })
+
+      results = controller.get_requested_changes(req: req)
+
+      expect(results).to eql <<~MESSAGE
+       > <@bob>: 10 + 100 = 110 :pie:
+       > <@alice>: 258 + 0 = 258 :pie:
+      MESSAGE
+    end
+  end
 end
