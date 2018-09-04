@@ -128,6 +128,20 @@ class SlackController < ApplicationController
     return msg
   end
 
+  def events
+    if params["type"] == "url_verification"
+      challenge = params["challenge"]
+
+      render json: { "challenge": challenge } and return
+    end
+
+    ts = params["event"]["ts"]
+    if req = ContributionApprovalRequest.last
+      req.ts = ts
+      req.save!
+    end
+  end
+
   def client
     @client ||= Slack::Web::Client.new(token: SLACK_BOT_TOKEN)
   end

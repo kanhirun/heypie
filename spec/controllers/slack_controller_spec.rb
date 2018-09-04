@@ -35,7 +35,8 @@ RSpec.describe SlackController, type: :controller do
 
       post :heypie_command, params: { "command": '/heypie', "trigger_id": "some-trigger-id"}
 
-      expect(response).to have_http_status :ok
+      # todo: expect(response).to have_http_status :ok
+      expect(response).to have_http_status :no_content
     end
 
     xit 'returns BAD REQUEST if request is messed up' do
@@ -47,6 +48,7 @@ RSpec.describe SlackController, type: :controller do
       expect(response).to have_http_status :bad_request
     end
   end
+
 
   describe 'POST /slack/interactive_messages/dialog_submission' do
     it "returns 404 error when user doesn't exist" do
@@ -111,6 +113,32 @@ RSpec.describe SlackController, type: :controller do
       # todo: not sure why slack doesn't like this?
       # expect(response).to have_http_status :ok
       expect(response).to have_http_status :no_content
+    end
+  end
+
+  describe 'POST /slack/events' do
+    it 'returns the challenge' do
+      params = {
+        'type': 'url_verification',
+        'challenge': 'some-challenge'
+      }
+
+      post :events, params: params
+
+      expect(response.body).to eql({ 'challenge': 'some-challenge' }.to_json)
+    end
+
+    it 'sets the ts' do
+      params = {
+        'event': {
+          'ts': 'some-ts'
+        }
+      }
+      ContributionApprovalRequest.create!(submitter: Grunt.create!(name: 'submitter'))
+
+      post :events, params: params
+
+      expect(ContributionApprovalRequest.last.id).to eql 'some-ts'
     end
   end
 
