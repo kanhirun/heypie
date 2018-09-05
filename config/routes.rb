@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   # post '/contributions/new', to: 'contributions#new'
 
   post '/slack/slash_commands/heypie', to: 'slack#heypie_command'
+  post '/slack/slash_commands/heypie-group', to: 'slack#heypie_group_command'
   post '/slack/interactive_components', to: 'slack#dialog_submission',
     constraints: lambda { |req| JSON(req.params["payload"])["type"] == "dialog_submission" }
   post '/slack/interactive_components', to: 'slack#vote_on_request',

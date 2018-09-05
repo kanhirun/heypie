@@ -13,6 +13,8 @@ class ContributionApprovalRequest < ApplicationRecord
   has_many :votes
   has_many :voters, through: :votes, source: :grunt
 
+  validates :submitter, presence: true
+
   attribute :processed, :boolean, default: false
 
   # an enum - pending, approved, or rejected

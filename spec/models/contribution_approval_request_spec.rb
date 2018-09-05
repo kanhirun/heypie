@@ -5,6 +5,7 @@ require_relative '../../app/models/contribution_approval_request'
 # todo: improve API so that we can represent the rewards
 RSpec.describe ContributionApprovalRequest do
   it { should belong_to :submitter }
+  it { should validate_presence_of :submitter }
   it { should have_many :nominations }
   it { should have_many :nominated_grunts }
   it { should have_many :votes }

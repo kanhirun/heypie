@@ -1,14 +1,5 @@
 require 'rails_helper'
 
-# todo: move me to DSL
-# makes it easier to read test code
-def from_slack(input)
-  seq = input.split("\s")
-  command, *text = seq
-
-  { 'command': command, 'text': text }
-end
-
 RSpec.describe SlackController, type: :controller do
   describe 'POST /slack/slash_commands/heypie' do
     it 'opens a dialog' do
@@ -82,6 +73,7 @@ RSpec.describe SlackController, type: :controller do
 
     it 'gives slices of pie to contributors' do
       custom = from_slack '/heypie-group @alice 10 @bob 5'
+      bob = Grunt.new
 
       expect do
         post :heypie_group_command, params: custom
@@ -249,3 +241,13 @@ RSpec.describe SlackController, type: :controller do
     end
   end
 end
+
+# todo: move me to DSL
+# makes it easier to read test code
+def from_slack(input)
+  seq = input.split("\s")
+  command, *text = seq
+
+  { 'command': command, 'text': text }
+end
+

@@ -1,15 +1,20 @@
+require_relative './concerns/error_handling'
 require_relative './utils/slack_formatter'
 
 class SlackController < ApplicationController
+  include ErrorHandling::HttpStatusCodes
+
+  rescue_from KeyError, with: :bad_request
+  rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   SLACK_BOT_TOKEN = ENV["SLACK_BOT_TOKEN"]
 
+  def heypie_group_command
+    render status: 501
+  end
+
   def heypie_command
-    begin
-      trigger_id = params.fetch("trigger_id")
-    rescue KeyError
-      render status: 400 and return
-    end
+    trigger_id = params.fetch("trigger_id")
 
     dialog = {
         "callback_id": "ryde-46e2b0",
@@ -46,23 +51,16 @@ class SlackController < ApplicationController
   end
 
   def dialog_submission
-    begin
-      deserialized = JSON(params.fetch("payload"))
+    deserialized = JSON(params.fetch("payload"))
 
-      nominated      = deserialized.fetch("submission").fetch("contribution_to")
-      origin         = deserialized.fetch("channel").fetch("id")
-      submitter_name = deserialized.fetch("user").fetch("id")
-      time_in_hours  = deserialized.fetch("submission").fetch("contribution_hours")
-      description    = deserialized.fetch("submission").fetch("contribution_description")
-    rescue KeyError
-      # todo use a logger to capture error
-      render status: 400 and return
-    end
+    nominated      = deserialized.fetch("submission").fetch("contribution_to")
+    origin         = deserialized.fetch("channel").fetch("id")
+    submitter_name = deserialized.fetch("user").fetch("id")
+    time_in_hours  = deserialized.fetch("submission").fetch("contribution_hours")
+    description    = deserialized.fetch("submission").fetch("contribution_description")
 
-    beneficiary = Grunt.find_by(name: nominated)
-    submitter = Grunt.find_by(name: submitter_name)
-
-    render status: 404 and return if beneficiary.nil?
+    beneficiary = Grunt.find_by!(name: nominated)
+    submitter   = Grunt.find_by!(name: submitter_name)
 
     # ew, api
     # todo: defer creating the obj until /events
