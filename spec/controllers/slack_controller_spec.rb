@@ -1,5 +1,14 @@
 require 'rails_helper'
 
+# todo: move me to DSL
+# makes it easier to read test code
+def from_slack(input)
+  seq = input.split("\s")
+  command, *text = seq
+
+  { 'command': command, 'text': text }
+end
+
 RSpec.describe SlackController, type: :controller do
   describe 'POST /slack/slash_commands/heypie' do
     it 'opens a dialog' do
@@ -61,6 +70,43 @@ RSpec.describe SlackController, type: :controller do
     end
   end
 
+  xdescribe 'POST /slack/slash_commands/heypie-group' do
+    it 'gives slices of pie to all contributors specified' do
+      group = from_slack '/heypie-group @alice @bob 5.0'
+
+      post :heypie_group_command, params: group
+
+      expect(response).to have_http_status 501
+      # expect(response).to have_http_status 200
+    end
+
+    it 'gives slices of pie to contributors' do
+      custom = from_slack '/heypie-group @alice 10 @bob 5'
+
+      expect do
+        post :heypie_group_command, params: custom
+      end.to change { bob.slices_of_pie }.by(5)
+
+      expect(response).to have_http_status 501
+      # expect(response).to have_http_status 200
+    end
+
+    it 'errors when the command is malformed' do
+      empty = from_slack '/heypie-group'
+
+      post :heypie_group_command, params: empty
+
+      expect(response).to have_http_status 400
+    end
+
+    it 'errors when the command is malformed' do
+      no_time_specified = from_slack '/heypie-group @alice'
+
+      post :heypie_group_command, params: no_time_specified
+
+      expect(response).to have_http_status 400
+    end
+  end
 
   describe 'POST /slack/interactive_messages/dialog_submission' do
     it "returns 404 error when user doesn't exist" do
