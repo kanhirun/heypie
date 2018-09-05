@@ -56,9 +56,11 @@ class SlackController < ApplicationController
 
     # ew, api
     req = ContributionApprovalRequest.create!(
-      submitter: submitter,
-      voters: Grunt.all.to_a
+      submitter: submitter
     )
+    Grunt.all.each do |g|
+      req.votes << Vote.create!(contribution_approval_request: req, grunt: g)
+    end
     req.nominations.create!({
       contribution_approval_request: req,
       grunt: beneficiary,
@@ -110,6 +112,46 @@ class SlackController < ApplicationController
       attachments: attachments,
       as_user: false
     )
+  end
+
+  def vote_on_request
+    payload = JSON(params["payload"])
+    username = payload["user"]["id"]
+    origin = payload["channel"]["id"]
+    ts = payload["message_ts"]
+
+    voter = Grunt.find_by(name: username)
+
+    render status: :not_found and return if voter.nil?
+
+    req = ContributionApprovalRequest.find_by(ts: ts)
+
+    if req.nil?
+      puts 'could not find ts'
+      render status: 500 and return
+    end
+
+    if payload["actions"].first["name"] == "Approve"
+      if req.approve!(from: voter)
+        client.chat_postMessage(channel: origin, text: "`Approved by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
+
+        if req.process
+          client.chat_postMessage(channel: origin, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
+          message = "`With this contribution, the pie's valuation is now estimated at $#{State.pie_estimated_valuation} USD.` :dollar:"
+          client.chat_postMessage(channel: origin, text: message, attachments: [], as_user: false, thread_ts: ts)
+        end
+      else
+        client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: voter.name, thread_ts: ts)
+      end
+    else
+      if req.reject!(from: voter)
+        client.chat_postMessage(channel: origin, text: "`Rejected by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
+      else
+        client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: voter.name, thread_ts: ts)
+      end
+    end
+
+    return
   end
 
   def get_requested_changes(req:)

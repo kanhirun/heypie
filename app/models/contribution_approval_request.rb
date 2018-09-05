@@ -61,9 +61,9 @@ class ContributionApprovalRequest < ApplicationRecord
 
   private
     def get_vote!(from:)
-      vote = Vote.find_by(grunt: from)
+      vote = Vote.find_by(grunt: from, contribution_approval_request: self)
 
-      raise CannotVoteIfYouAreAnOutsiderError.new if voters.exclude?(from) or vote.nil?
+      raise CannotVoteIfYouAreAnOutsiderError.new if voters.exclude?(from)
       raise AlreadyVotedError.new if vote.already_voted?
 
       vote
