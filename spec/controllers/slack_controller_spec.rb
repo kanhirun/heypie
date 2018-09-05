@@ -39,7 +39,19 @@ RSpec.describe SlackController, type: :controller do
       expect(response).to have_http_status :no_content
     end
 
-    xit 'returns BAD REQUEST if request is messed up' do
+    it "returns 504 SERVICE UNAVAILABLE when the server isn't fast enough" do
+      mock_client = instance_double("SlackClient")
+      allow(mock_client).to receive(:dialog_open).with(anything()) do
+        raise Slack::Web::Api::Errors::SlackError.new("timeout")
+      end
+      controller.client = mock_client
+
+      post :heypie_command, params: { "trigger_id": "99999999" }
+
+      expect(response).to have_http_status 504
+    end
+
+    it 'returns 400 BAD REQUEST if request is malformed' do
       client = instance_double('Slack::Client')
       controller.client = client
 

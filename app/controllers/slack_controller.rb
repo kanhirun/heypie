@@ -5,7 +5,11 @@ class SlackController < ApplicationController
   SLACK_BOT_TOKEN = ENV["SLACK_BOT_TOKEN"]
 
   def heypie_command
-    trigger_id = params.fetch("trigger_id")
+    begin
+      trigger_id = params.fetch("trigger_id")
+    rescue KeyError
+      render status: 400 and return
+    end
 
     dialog = {
         "callback_id": "ryde-46e2b0",
@@ -33,8 +37,12 @@ class SlackController < ApplicationController
         ]
     }
 
-    # todo: error handle
-    client.dialog_open(trigger_id: trigger_id, dialog: dialog)
+    begin
+      client.dialog_open(trigger_id: trigger_id, dialog: dialog)
+      render status: 204
+    rescue Slack::Web::Api::Errors::SlackError
+      render status: 504
+    end
   end
 
   def dialog_submission
