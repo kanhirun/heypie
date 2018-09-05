@@ -55,6 +55,7 @@ class SlackController < ApplicationController
     render status: 404 and return if beneficiary.nil?
 
     # ew, api
+    # todo: defer creating the obj until /events
     req = ContributionApprovalRequest.create!(
       submitter: submitter
     )
