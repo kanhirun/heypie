@@ -4,6 +4,7 @@ require_relative './utils/slack_formatter'
 class SlackController < ApplicationController
   include ErrorHandling::HttpStatusCodes
 
+  # todo: #fetch can be used for different use cases; it's better to handle strong params
   rescue_from KeyError, with: :bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
@@ -45,7 +46,7 @@ class SlackController < ApplicationController
     begin
       client.dialog_open(trigger_id: trigger_id, dialog: dialog)
       render status: 204
-    rescue Slack::Web::Api::Errors::SlackError
+    rescue Slack::Web::Api::Errors::SlackError  # todo: target this error
       render status: 504
     end
   end
