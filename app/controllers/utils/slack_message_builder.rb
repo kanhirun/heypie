@@ -19,7 +19,7 @@ class SlackMessageBuilder
       _*SocialContract (d190379):* (<https://github.com/kanhirun/hey-pie-social-contract/blame/d190379a0dd2640df5bc6d9f1e08312a99db914c/README.md|view>) (<https://github.com/kanhirun/hey-pie-social-contract/edit/master/README.md|edit>)_
 
       *Request:*
-      > <@#{submitter_name}> requested approval for *#{@time_in_hours} HOURS* which would award *#{time_in_hours.to_f * beneficiary.hourly_rate} SLICES OF PIE* to *<@#{@beneficiary.name}>*
+      > <@#{submitter_name}> requested approval for *#{@time_in_hours} HOURS* which would award *#{@time_in_hours.to_f * @beneficiary.hourly_rate} SLICES OF PIE* to *<@#{@beneficiary.name}>*
       *Description:*
       #{description(@description)}
       *Requested Changes:*

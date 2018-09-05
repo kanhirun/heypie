@@ -1,5 +1,5 @@
 require_relative './concerns/error_handling'
-require_relative './utils/slack_formatter'
+require_relative './utils/slack_message_builder'
 
 class SlackController < ApplicationController
   include ErrorHandling::HttpStatusCodes
@@ -77,7 +77,7 @@ class SlackController < ApplicationController
       slices_of_pie_to_be_rewarded: (time_in_hours.to_f * beneficiary.hourly_rate)
     })
 
-    formatter = SlackMessageBuilder.new(req, description, time_in_hours)
+    formatter = SlackMessageBuilder.new(req, description, time_in_hours, beneficiary)
     text, attachments = formatter.build
 
     # todo: capture slack error
@@ -138,8 +138,7 @@ class SlackController < ApplicationController
 
     ts = params["event"]["ts"]
     if req = ContributionApprovalRequest.last
-      req.ts ||= ts
-      req.save!
+      req.update_attribute(:ts, ts)
     end
   end
 
