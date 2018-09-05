@@ -142,7 +142,7 @@ RSpec.describe SlackController, type: :controller do
     end
   end
 
-  describe '#get_requested_changes(req:)' do
+  describe '#requested_changes(req)' do
     it "returns each person's pie" do
       alice = Grunt.new(name: "alice")
       bob = Grunt.new(name: "bob")
@@ -158,36 +158,36 @@ RSpec.describe SlackController, type: :controller do
         slices_of_pie_to_be_rewarded: 100
       })
 
-      results = controller.get_requested_changes(req: req)
+      results = controller.formatter.requested_changes(req)
 
-      expect(results).to eql <<~MESSAGE
+      expect(results).to eql <<~SLACK_FORMATTED
        > <@bob>: 10 + 100 = 110 :pie:
        > <@alice>: 258 + 0 = 258 :pie:
-      MESSAGE
+      SLACK_FORMATTED
     end
   end
 
   describe 'format_description(text)' do
     it 'quotes very long text' do
-      text = <<~TEXT
+      large_text = <<~RAW_TEXT
         aaaaaaaaaaaaaaaa
         bbbbbbbbbbb
         ccccccc
         ddddd
         eee
         f
-      TEXT
+      RAW_TEXT
 
-      results = <<~RESULTS
+      results = <<~SLACK_FORMATTED
         > aaaaaaaaaaaaaaaa
         > bbbbbbbbbbb
         > ccccccc
         > ddddd
         > eee
         > f
-      RESULTS
+      SLACK_FORMATTED
 
-      expect(controller.format_description(text)).to eql results.chomp
+      expect(controller.formatter.quote(large_text)).to eql results.chomp
     end
   end
 end

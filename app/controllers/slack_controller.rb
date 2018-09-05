@@ -1,3 +1,5 @@
+require_relative './utils/slack_formatter'
+
 class SlackController < ApplicationController
 
   SLACK_BOT_TOKEN = ENV["SLACK_BOT_TOKEN"]
@@ -77,9 +79,9 @@ class SlackController < ApplicationController
       *Request:*
       > <@#{submitter.name}> requested approval for *#{time_in_hours} HOURS* which would award *#{time_in_hours.to_f * beneficiary.hourly_rate} SLICES OF PIE* to *<@#{beneficiary.name}>*
       *Description:*
-      #{format_description(description)}
+      #{formatter.quote(description)}
       *Requested Changes:*
-      #{get_requested_changes(req: req)}
+      #{formatter.requested_changes(req)}
     SLACK_TEMPLATE
 
     attachments = [
@@ -155,28 +157,6 @@ class SlackController < ApplicationController
     return
   end
 
-  def format_description(text)
-    text.split("\n").map do |line|
-      "> #{line}"
-    end.join("\n")
-  end
-
-  def get_requested_changes(req:)
-    msg = ""
-
-    req.voters.each do |voter|
-      if nomination = Nomination.find_by(grunt: voter, contribution_approval_request: req)
-        start = nomination.grunt.slices_of_pie
-        diff = nomination.slices_of_pie_to_be_rewarded
-        msg += "> <@#{nomination.grunt.name}>: #{start} + #{diff} = #{start + diff} :pie:\n"
-      else
-        msg += "> <@#{voter.name}>: #{voter.slices_of_pie} + 0 = #{voter.slices_of_pie} :pie:\n"
-      end
-    end
-
-    return msg
-  end
-
   def events
     if params["type"] == "url_verification"
       challenge = params["challenge"]
@@ -198,5 +178,9 @@ class SlackController < ApplicationController
   # for testing
   def client=(new_client)
     @client = new_client
+  end
+
+  def formatter
+    SlackFormatter
   end
 end
