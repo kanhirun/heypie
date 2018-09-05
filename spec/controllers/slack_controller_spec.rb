@@ -138,7 +138,7 @@ RSpec.describe SlackController, type: :controller do
 
       post :events, params: params
 
-      expect(ContributionApprovalRequest.last.id).to eql 'some-ts'
+      expect(ContributionApprovalRequest.last.ts).to eql 'some-ts'
     end
   end
 
@@ -164,6 +164,30 @@ RSpec.describe SlackController, type: :controller do
        > <@bob>: 10 + 100 = 110 :pie:
        > <@alice>: 258 + 0 = 258 :pie:
       MESSAGE
+    end
+  end
+
+  describe 'format_description(text)' do
+    it 'quotes very long text' do
+      text = <<~TEXT
+        aaaaaaaaaaaaaaaa
+        bbbbbbbbbbb
+        ccccccc
+        ddddd
+        eee
+        f
+      TEXT
+
+      results = <<~RESULTS
+        > aaaaaaaaaaaaaaaa
+        > bbbbbbbbbbb
+        > ccccccc
+        > ddddd
+        > eee
+        > f
+      RESULTS
+
+      expect(controller.format_description(text)).to eql results.chomp
     end
   end
 end

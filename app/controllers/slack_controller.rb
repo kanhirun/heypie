@@ -76,7 +76,7 @@ class SlackController < ApplicationController
       *Request:*
       > <@#{submitter.name}> requested approval for *#{time_in_hours} HOURS* which would award *#{time_in_hours.to_f * beneficiary.hourly_rate} SLICES OF PIE* to *<@#{beneficiary.name}>*
       *Description:*
-      > #{description}
+      #{format_description(description)}
       *Requested Changes:*
       #{get_requested_changes(req: req)}
     SLACK_TEMPLATE
@@ -152,6 +152,12 @@ class SlackController < ApplicationController
     end
 
     return
+  end
+
+  def format_description(text)
+    text.split("\n").map do |line|
+      "> #{line}"
+    end.join("\n")
   end
 
   def get_requested_changes(req:)

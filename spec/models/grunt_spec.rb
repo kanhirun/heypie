@@ -22,19 +22,6 @@ RSpec.describe Grunt, type: :model do
     it { should validate_numericality_of :base_salary }
   end
 
-  # The test below is meant for illustration
-  describe 'ActiveModel::Dirty' do
-    it "tracks changes to a Grunt's slices of pie" do
-      expect(subject.changed?).to eql false
-
-      subject.contribute(hours: 10)
-
-      expect(subject.slices_of_pie_changed?).to eql true
-      expect(subject.slices_of_pie_was).to eql 0.0
-      expect(subject.slices_of_pie).to eql(10 * subject.hourly_rate)
-    end
-  end
-
   describe '==(other_grunt)' do
     it 'returns true when their names match' do
       a = Grunt.new(id: 1, base_salary: 1)
@@ -48,7 +35,7 @@ RSpec.describe Grunt, type: :model do
 
   describe '#slices_of_pie' do
     it 'defaults to 0' do
-      expect(Grunt.new.slices_of_pie).to eql 0.0
+      expect(Grunt.new.slices_of_pie).to eql 0
     end
   end
 
@@ -85,7 +72,7 @@ RSpec.describe Grunt, type: :model do
 
       grunt.contribute(hours: hours)
 
-      expect(grunt.slices_of_pie).to eql(grunt.hourly_rate * hours)
+      expect(grunt.slices_of_pie.to_f).to eql(grunt.hourly_rate * hours)
     end
   end
 end
