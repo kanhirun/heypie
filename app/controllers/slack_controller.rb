@@ -185,7 +185,7 @@ class SlackController < ApplicationController
 
     ts = params["event"]["ts"]
     if req = ContributionApprovalRequest.last
-      req.ts = ts
+      req.ts ||= ts
       req.save!
     end
   end
