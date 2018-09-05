@@ -131,24 +131,24 @@ class SlackController < ApplicationController
       render status: 500 and return
     end
 
-    if payload["actions"].first["name"] == "Approve"
-      if req.approve!(from: voter)
-        client.chat_postMessage(channel: origin, text: "`Approved by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
+    begin
+      if payload["actions"].first["name"] == "Approve"
+        if req.approve!(from: voter)
+          client.chat_postMessage(channel: origin, text: "`Approved by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
 
-        if req.process
-          client.chat_postMessage(channel: origin, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
-          message = "`With this contribution, the pie's valuation is now estimated at $#{State.pie_estimated_valuation} USD.` :dollar:"
-          client.chat_postMessage(channel: origin, text: message, attachments: [], as_user: false, thread_ts: ts)
+          if req.process
+            client.chat_postMessage(channel: origin, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
+            message = "`With this contribution, the pie's valuation is now estimated at $#{State.pie_estimated_valuation} USD.` :dollar:"
+            client.chat_postMessage(channel: origin, text: message, attachments: [], as_user: false, thread_ts: ts)
+          end
         end
       else
-        client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: voter.name, thread_ts: ts)
+        if req.reject!(from: voter)
+          client.chat_postMessage(channel: origin, text: "`Rejected by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
+        end
       end
-    else
-      if req.reject!(from: voter)
-        client.chat_postMessage(channel: origin, text: "`Rejected by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
-      else
-        client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: voter.name, thread_ts: ts)
-      end
+    rescue AlreadyVotedError
+      client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: voter.name, thread_ts: ts)
     end
 
     return
