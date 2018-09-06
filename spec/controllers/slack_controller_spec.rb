@@ -61,8 +61,40 @@ RSpec.describe SlackController, type: :controller do
     end
   end
 
-  xdescribe 'POST /slack/slash_commands/heypie-group' do
-    it 'gives slices of pie to all contributors specified' do
+  describe 'POST /slack/slash_commands/heypie-group' do
+    xit '/heypie-group @alice 22' do
+      Grunt.create!(name: "alice-id")
+
+      mock_client = instance_double('SlackClient')
+      controller.client = mock_client
+      stubbed = Slack::Messages::Message.new({
+          members: [
+            {
+              id: "alice-id",
+              profile: {
+                display_name: "alice"
+              }
+            },
+            {
+              id: "bob-id",
+              profile: {
+                display_name: "bob"
+              }
+            }
+          ]
+      })
+      allow(mock_client).to receive(:users_list).and_return(stubbed)
+      expect(mock_client).to receive(:chat_postMessage).with(hash_including(
+        text: "Hello, <@alice-id>!"
+      ))
+
+      command = from_slack('/heypie-group @alice 22')
+        .merge({ "channel_id": "9999"})
+
+      post :heypie_group_command, params: command
+    end
+
+    it '/heypie-group @alice @bob 5.0' do
       group = from_slack '/heypie-group @alice @bob 5.0'
 
       post :heypie_group_command, params: group
@@ -71,7 +103,7 @@ RSpec.describe SlackController, type: :controller do
       # expect(response).to have_http_status 200
     end
 
-    it 'gives slices of pie to contributors' do
+    it '/heypie-group @alice 10 @bob 5' do
       custom = from_slack '/heypie-group @alice 10 @bob 5'
       bob = Grunt.new
 
@@ -81,6 +113,9 @@ RSpec.describe SlackController, type: :controller do
 
       expect(response).to have_http_status 501
       # expect(response).to have_http_status 200
+    end
+
+    it '/heypie-group @here 10' do
     end
 
     it 'errors when the command is malformed' do
@@ -195,10 +230,16 @@ end
 
 # todo: move me to DSL
 # makes it easier to read test code
+# todo: use re to capture groups etc
 def from_slack(input)
-  seq = input.split("\s")
-  command, *text = seq
+  command_pattern = /(\/[a-zA-Z\-\_]+)(.*)/
 
-  { 'command': command, 'text': text }
+  if matched = command_pattern.match(input)
+    command, text = matched[1], matched[2]
+
+    return { 'command': command, 'text': text }
+  else
+    raise StandardError.new
+  end
 end
 

@@ -11,7 +11,38 @@ class SlackController < ApplicationController
   SLACK_BOT_TOKEN = ENV["SLACK_BOT_TOKEN"]
 
   def heypie_group_command
-    render status: 501
+    channel = params.fetch("channel_id")
+    command = params.fetch("text")
+
+    # todo: seems useful enough to extract..?
+    def mention(id)
+      "<@#{id}>"
+    end
+
+    users = client.users_list
+
+    matched = users.members.find do |member|
+      matching_name = member.dig(:profile, :display_name)
+      command.include? matching_name
+    end
+
+    if matched && mentioned = Grunt.find_by(name: matched.id)
+      model = ContributionApprovalRequest.new(
+        submitter: mentioned
+      )
+      message = SlackMessageBuilder.new(model, "N/A", 999, mentioned)
+      text, attachments = message.build
+
+      client.chat_postMessage(
+        channel: channel,
+        text: text,
+        attachments: attachments
+      )
+
+      render status: 204
+    else
+      render status: 404
+    end
   end
 
   def heypie_command
