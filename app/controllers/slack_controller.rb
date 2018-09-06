@@ -131,11 +131,9 @@ class SlackController < ApplicationController
     beneficiary = Grunt.find_by!(name: nominated)
     submitter   = Grunt.find_by!(name: submitter_name)
 
-    # ew, api
-    # todo: defer creating the obj until /events
     model = ContributionApprovalRequest.new(
       submitter: submitter,
-      voters: Grunt.all.to_a
+      voters: Grunt.heypie_grunts
     )
     model.contribute_hours(beneficiary => time_in_hours)
     model.save!

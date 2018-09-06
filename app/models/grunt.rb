@@ -1,6 +1,12 @@
 require_relative 'application_record'
 
 class Grunt < ApplicationRecord
+
+  # todo: temp
+  def self.heypie_grunts
+    Grunt.take(5).to_a
+  end
+
   # todo: warning emitted with multiple declares
   NONCASH_MULTIPLIER = 2  # todo: this should probably be defined at the project level
 
