@@ -57,11 +57,11 @@ class SlackMessageBuilder
     def requested_changes
       msg = ""
 
-      @model.voters.each do |voter|
+      @model.voters.sort_by(&:slices_of_pie).each do |voter|
         if nomination = Nomination.find_by(grunt: voter, contribution_approval_request: @model)
           start = nomination.grunt.slices_of_pie
           diff = nomination.slices_of_pie_to_be_rewarded
-          msg += "> <@#{nomination.grunt.name}>: #{start} + #{diff} = #{start + diff} :pie:\n"
+          msg += "> *<@#{nomination.grunt.name}>: #{start} + #{diff} = #{start + diff}* :pie:\n"
         else
           msg += "> <@#{voter.name}>: #{voter.slices_of_pie} + 0 = #{voter.slices_of_pie} :pie:\n"
         end
