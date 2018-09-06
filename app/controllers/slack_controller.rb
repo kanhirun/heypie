@@ -137,7 +137,7 @@ class SlackController < ApplicationController
       submitter: submitter,
       voters: Grunt.all.to_a
     )
-    model.maybe_contribute_hours(beneficiary => time_in_hours)
+    model.contribute_hours(beneficiary => time_in_hours)
     model.save!
 
     formatter = SlackMessageBuilder.new(model, description, time_in_hours, beneficiary)

@@ -12,14 +12,14 @@ RSpec.describe ContributionApprovalRequest do
   it { should have_many :voters }
 
   # todo: move me to a service
-  describe '#maybe_contribute_hours' do
+  describe 'contribute_hours(dict)' do
     it 'creates nominations internally without persisting' do
       bob   = Grunt.create!(name: "Bob")
       alice = Grunt.create!(name: "Alice")
       subject.submitter = Grunt.new
 
       expect do
-        subject.maybe_contribute_hours(bob => 1, alice => 2)
+        subject.contribute_hours(bob => 1, alice => 2)
         subject.process
 
         bob.reload

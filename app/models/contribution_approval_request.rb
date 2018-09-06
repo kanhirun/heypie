@@ -21,7 +21,7 @@ class ContributionApprovalRequest < ApplicationRecord
   # todo: missing team parameter; team != voters; but 
   # nominated grunts belong to the set of team
 
-  def maybe_contribute_hours(grunt_to_hours)
+  def contribute_hours(grunt_to_hours)
     # todo: missing guard for checking membership
 
     grunt_to_hours.each do |grunt, hours|

@@ -279,7 +279,7 @@ RSpec.describe SlackController, type: :controller do
       mock_client = instance_double("NullClient").as_null_object
       controller.client = mock_client
 
-      model.maybe_contribute_hours({
+      model.contribute_hours({
         bob => 10,
         alice => 5
       })
