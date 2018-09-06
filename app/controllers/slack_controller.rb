@@ -9,9 +9,46 @@ class SlackController < ApplicationController
 
   SLACK_BOT_TOKEN = ENV["SLACK_BOT_TOKEN"]
 
+  # a naive algorithm for interpreting text intending to
+  # organize users to their contributions
+  #
+  # Example:
+  # @alice @bob 10 @felix 3
+  # to be read as, "alice and bob gets 10, felix gets 3."
+  def process_command(text)
+    tokens = text.split("\s")
+
+    processed = tokens.map do |token|
+      if token.starts_with?("@")
+        token[1..token.length]
+      else
+        token.to_i
+      end
+    end
+
+    results = {}
+    deferred = []
+    processed.each do |x|
+      if x.is_a? String
+        deferred << x
+      elsif x.is_a? Integer
+        # flushes out
+        deferred.each do |y|
+          results[y] = x
+        end
+        deferred = []
+      end
+    end
+
+    return nil if deferred.present?
+
+    return results
+  end
+
   def heypie_group_command
     channel = params.fetch("channel_id")
     command = params.fetch("text")
+    submitter_name = params.fetch("user_id")
 
     # todo: seems useful enough to extract..?
     def mention(id)
@@ -19,6 +56,7 @@ class SlackController < ApplicationController
     end
 
     users = client.users_list
+    submitter = Grunt.find_by!(name: submitter_name)
 
     matched = users.members.find do |member|
       matching_name = member.dig(:profile, :display_name)
@@ -27,7 +65,7 @@ class SlackController < ApplicationController
 
     if matched && mentioned = Grunt.find_by(name: matched.id)
       model = ContributionApprovalRequest.new(
-        submitter: mentioned
+        submitter: submitter
       )
       message = SlackMessageBuilder.new(model, "N/A", 999, mentioned)
       text, attachments = message.build
@@ -103,7 +141,7 @@ class SlackController < ApplicationController
       model.votes.create!(grunt: g)
     end
     model.maybe_contribute_hours(beneficiary => time_in_hours)
-    model.save!
+    model.save! # todo: this actually processes and rewards the grunts....
 
     formatter = SlackMessageBuilder.new(model, description, time_in_hours, beneficiary)
     text, attachments = formatter.build

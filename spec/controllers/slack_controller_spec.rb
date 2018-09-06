@@ -61,6 +61,59 @@ RSpec.describe SlackController, type: :controller do
     end
   end
 
+  # todo: move me
+  describe 'process_command' do 
+    it 'does it' do
+      text = "@alice 22"
+
+      results = controller.process_command(text)
+
+      expect(results).to eql({ "alice" => 22 })
+    end
+
+    it 'does it' do
+      text = "@alice @bob 100"
+
+      results = controller.process_command(text)
+
+      expect(results).to eql({ 
+        "alice" => 100,
+        "bob" => 100
+      })
+    end
+
+    it 'does it' do
+      text = "@alice 11 @bob 22"
+
+      results = controller.process_command(text)
+
+      expect(results).to eql({ 
+        "alice" => 11,
+        "bob" => 22
+      })
+    end
+
+    it 'is can handle weird spaces' do
+      text = "@alice      333 @bob @james   999"
+
+      results = controller.process_command(text)
+
+      expect(results).to eql({ 
+        "alice" => 333,
+        "bob" => 999,
+        "james" => 999
+      })
+    end
+
+    it 'returns nil when shit' do
+      text = "@alice @bob @james"
+
+      results = controller.process_command(text)
+
+      expect(results).to be nil
+    end
+  end
+
   xdescribe 'POST /slack/slash_commands/heypie-group' do
     it '/heypie-group @alice 22' do
       Grunt.create!(name: "alice-id")

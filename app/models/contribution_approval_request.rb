@@ -28,7 +28,7 @@ class ContributionApprovalRequest < ApplicationRecord
       grunt.contribute(hours: hours.to_f)
       reward = grunt.slices_of_pie - (grunt.slices_of_pie_was || 0)
 
-      if persisted?
+      if persisted? and grunt.persisted?
         nominations << Nomination.new(
           grunt: grunt,
           contribution_approval_request: self,
