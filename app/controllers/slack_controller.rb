@@ -4,7 +4,6 @@ require_relative './utils/slack_message_builder'
 class SlackController < ApplicationController
   include ErrorHandling::HttpStatusCodes
 
-  # todo: #fetch can be used for different use cases; it's better to handle strong params
   rescue_from KeyError, with: :bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
@@ -96,19 +95,17 @@ class SlackController < ApplicationController
 
     # ew, api
     # todo: defer creating the obj until /events
-    req = ContributionApprovalRequest.create!(
+    model = ContributionApprovalRequest.create!(
       submitter: submitter
     )
+    # todo: abstract me next!
     Grunt.all.each do |g|
-      req.votes << Vote.create!(contribution_approval_request: req, grunt: g)
+      model.votes.create!(grunt: g)
     end
-    req.nominations.create!({
-      contribution_approval_request: req,
-      grunt: beneficiary,
-      slices_of_pie_to_be_rewarded: (time_in_hours.to_f * beneficiary.hourly_rate)
-    })
+    model.maybe_contribute_hours(beneficiary => time_in_hours)
+    model.save!
 
-    formatter = SlackMessageBuilder.new(req, description, time_in_hours, beneficiary)
+    formatter = SlackMessageBuilder.new(model, description, time_in_hours, beneficiary)
     text, attachments = formatter.build
 
     # todo: capture slack error
@@ -169,7 +166,7 @@ class SlackController < ApplicationController
 
     ts = params["event"]["ts"]
     if req = ContributionApprovalRequest.last
-      req.update_attribute(:ts, ts)
+      req.update({ts: ts})
     end
   end
 

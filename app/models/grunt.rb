@@ -8,7 +8,7 @@ class Grunt < ApplicationRecord
            foreign_key: :submitter_id
 
   attribute :slices_of_pie, :integer, default: 0
-  attribute :base_salary, :float, default: 100_000.0 # todo: hmm...
+  attribute :base_salary, :float, default: 100_000.0 # todo: hmm... 100K eh
 
   validates :name, :slices_of_pie, :base_salary, presence: true
   validates :slices_of_pie, :base_salary, numericality: true

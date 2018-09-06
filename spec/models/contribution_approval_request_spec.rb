@@ -11,6 +11,25 @@ RSpec.describe ContributionApprovalRequest do
   it { should have_many :votes }
   it { should have_many :voters }
 
+  # todo: move me to a service
+  describe '#maybe_contribute_hours' do
+    it 'creates nominations internally without persisting' do
+      bob   = Grunt.new
+      alice = Grunt.new
+
+      expect do
+        subject.maybe_contribute_hours(bob => 1, alice => 2)
+      end.to change { bob.slices_of_pie }.by(100)
+        .and change { alice.slices_of_pie }.by(200)
+
+      expect(subject.nominated_grunts.to_a).to eql [bob, alice]
+      expect(subject.nominations.length).to eql 2
+      expect(subject.nominations.first.slices_of_pie_to_be_rewarded).to eql 100
+      expect(subject.nominations.last.slices_of_pie_to_be_rewarded).to eql 200
+      expect(subject.nominations.map(&:slices_of_pie_to_be_rewarded).inject(:+)).to eql 300
+    end
+  end
+
   describe '#status' do
     it 'defaults to pending' do
       some_voters = [Grunt.new, Grunt.new]

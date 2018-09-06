@@ -61,8 +61,8 @@ RSpec.describe SlackController, type: :controller do
     end
   end
 
-  describe 'POST /slack/slash_commands/heypie-group' do
-    xit '/heypie-group @alice 22' do
+  xdescribe 'POST /slack/slash_commands/heypie-group' do
+    it '/heypie-group @alice 22' do
       Grunt.create!(name: "alice-id")
 
       mock_client = instance_double('SlackClient')
