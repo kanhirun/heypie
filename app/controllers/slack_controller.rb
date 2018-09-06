@@ -133,15 +133,12 @@ class SlackController < ApplicationController
 
     # ew, api
     # todo: defer creating the obj until /events
-    model = ContributionApprovalRequest.create!(
-      submitter: submitter
+    model = ContributionApprovalRequest.new(
+      submitter: submitter,
+      voters: Grunt.all.to_a
     )
-    # todo: abstract me next!
-    Grunt.all.each do |g|
-      model.votes.create!(grunt: g)
-    end
     model.maybe_contribute_hours(beneficiary => time_in_hours)
-    model.save! # todo: this actually processes and rewards the grunts....
+    model.save!
 
     formatter = SlackMessageBuilder.new(model, description, time_in_hours, beneficiary)
     text, attachments = formatter.build

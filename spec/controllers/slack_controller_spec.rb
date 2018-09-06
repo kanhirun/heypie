@@ -250,9 +250,12 @@ RSpec.describe SlackController, type: :controller do
 
       alice.reload
 
+      contribution = ContributionApprovalRequest.last
       # todo: not sure why slack doesn't like this?
       # expect(response).to have_http_status :ok
       expect(alice.slices_of_pie_changed?).to be false
+      expect(contribution.votes.length).to eql Grunt.all.length
+      expect(contribution.voters.length).to eql Grunt.all.length
       expect(response).to have_http_status :no_content
     end
   end
