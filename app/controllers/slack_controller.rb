@@ -7,7 +7,7 @@ class SlackController < ApplicationController
   rescue_from KeyError, with: :bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
-  SLACK_BOT_TOKEN = ENV["SLACK_BOT_TOKEN"]
+  SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
 
   # a naive algorithm for interpreting text intending to
   # organize users to their contributions
@@ -153,14 +153,16 @@ class SlackController < ApplicationController
   end
 
   def vote_on_request
-    payload = JSON(params["payload"])
-    username = payload["user"]["id"]
-    origin = payload["channel"]["id"]
-    ts = payload["message_ts"]
+    payload = JSON(params.fetch("payload"))
+    username = payload.fetch("user").fetch("id")
+    origin = payload.fetch("channel").fetch("id")
+    ts = payload.fetch("message_ts")
 
     voter = Grunt.find_by(name: username)
 
-    render status: :not_found and return if voter.nil?
+    if voter.blank?
+      render status: 404 and return 
+    end
 
     req = ContributionApprovalRequest.find_by(ts: ts)
 

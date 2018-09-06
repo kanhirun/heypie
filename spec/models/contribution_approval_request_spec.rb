@@ -14,11 +14,16 @@ RSpec.describe ContributionApprovalRequest do
   # todo: move me to a service
   describe '#maybe_contribute_hours' do
     it 'creates nominations internally without persisting' do
-      bob   = Grunt.new
-      alice = Grunt.new
+      bob   = Grunt.create!(name: "Bob")
+      alice = Grunt.create!(name: "Alice")
+      subject.submitter = Grunt.new
 
       expect do
         subject.maybe_contribute_hours(bob => 1, alice => 2)
+        subject.process
+
+        bob.reload
+        alice.reload
       end.to change { bob.slices_of_pie }.by(100)
         .and change { alice.slices_of_pie }.by(200)
 
@@ -59,7 +64,6 @@ RSpec.describe ContributionApprovalRequest do
   describe '#process' do
     it 'rewards the beneficiaries with slices of pie' do
       beneficiary = Grunt.create!(name: 'some-beneficiary')
-      reward = 100.00
 
       subject = ContributionApprovalRequest.create!(
         submitter: Grunt.new,
@@ -69,7 +73,7 @@ RSpec.describe ContributionApprovalRequest do
       subject.nominations.create!({
         contribution_approval_request: subject,
         grunt: beneficiary,
-        slices_of_pie_to_be_rewarded: reward
+        slices_of_pie_to_be_rewarded: 100
       })
 
       expect do

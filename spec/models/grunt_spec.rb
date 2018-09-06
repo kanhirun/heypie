@@ -12,11 +12,6 @@ RSpec.describe Grunt, type: :model do
     it { should validate_uniqueness_of :name }
   end
 
-  describe '#slices_of_pie' do
-    it { should validate_presence_of :slices_of_pie }
-    it { should validate_numericality_of :slices_of_pie }
-  end
-
   describe '#base_salary' do
     it { should validate_presence_of :base_salary }
     it { should validate_numericality_of :base_salary }
@@ -34,6 +29,17 @@ RSpec.describe Grunt, type: :model do
   end
 
   describe '#slices_of_pie' do
+    it 'returns the sum of pies awarded' do
+      winner = Grunt.new
+      winner.nominations.build([
+        { grunt: winner, awarded: false, slices_of_pie_to_be_rewarded: 10 },
+        { grunt: winner, awarded: true, slices_of_pie_to_be_rewarded: 20 },
+        { grunt: winner, awarded: true, slices_of_pie_to_be_rewarded: 30 }
+      ])
+
+      expect(winner.slices_of_pie).to eql 30 + 20
+    end
+
     it 'defaults to 0' do
       expect(Grunt.new.slices_of_pie).to eql 0
     end
@@ -56,7 +62,7 @@ RSpec.describe Grunt, type: :model do
     end
   end
 
-  describe '#contribute(hours:)' do
+  xdescribe '#contribute(hours:)' do
     it "doesn't change if no time was spent working" do
       grunt = Grunt.new
       zero = 0

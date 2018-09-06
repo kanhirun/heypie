@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_09_04_222410) do
+ActiveRecord::Schema.define(version: 2018_09_04_003331) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -22,7 +22,6 @@ ActiveRecord::Schema.define(version: 2018_09_04_222410) do
 
   create_table "grunts", force: :cascade do |t|
     t.string "name"
-    t.integer "slices_of_pie"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
@@ -31,6 +30,7 @@ ActiveRecord::Schema.define(version: 2018_09_04_222410) do
     t.integer "grunt_id"
     t.integer "contribution_approval_request_id"
     t.integer "slices_of_pie_to_be_rewarded"
+    t.boolean "awarded", default: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end

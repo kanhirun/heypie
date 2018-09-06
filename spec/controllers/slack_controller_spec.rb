@@ -250,13 +250,61 @@ RSpec.describe SlackController, type: :controller do
 
       alice.reload
 
-      contribution = ContributionApprovalRequest.last
       # todo: not sure why slack doesn't like this?
       # expect(response).to have_http_status :ok
-      expect(alice.slices_of_pie_changed?).to be false
-      expect(contribution.votes.length).to eql Grunt.all.length
-      expect(contribution.voters.length).to eql Grunt.all.length
+
+      contribution = ContributionApprovalRequest.last
+      contribution.voters = []
+      contribution.process
+      contribution.save!
+
+      alice.reload
+
+      expect(alice.slices_of_pie).to eql((22 * alice.hourly_rate).to_i)
+      expect(contribution.votes.length).to eql 0
+      expect(contribution.voters.length).to eql 0
       expect(response).to have_http_status :no_content
+    end
+  end
+
+  describe 'voting' do
+    it 'rejects a vote' do
+      alice = Grunt.new(name: "Alice")
+      bob = Grunt.new(name: "Bob")  # is the voter
+      model = ContributionApprovalRequest.new(
+        submitter: Grunt.new,
+        voters: [alice, bob],
+        ts: "my-ts"
+      )
+      mock_client = instance_double("NullClient").as_null_object
+      controller.client = mock_client
+
+      model.maybe_contribute_hours({
+        bob => 10,
+        alice => 5
+      })
+
+      model.save!
+
+      params = JSON({
+        "user": { "id": "Bob" },  # here it is
+        "channel": { "id": "some-channel-id" },
+        "message_ts": "my-ts",  # and here it is
+        "actions": [
+          {"name": "Reject"}
+        ]
+      })
+
+      post :vote_on_request, params: { payload: params }
+
+      alice.reload
+
+      expect(model.processed).to be false
+      expect(alice.slices_of_pie).to eql 0
+      expect(response).to have_http_status 204
+    end
+
+    it 'accepts a vote' do
     end
   end
 

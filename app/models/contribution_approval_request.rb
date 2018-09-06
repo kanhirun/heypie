@@ -25,19 +25,11 @@ class ContributionApprovalRequest < ApplicationRecord
     # todo: missing guard for checking membership
 
     grunt_to_hours.each do |grunt, hours|
-      grunt.contribute(hours: hours.to_f)
-      reward = grunt.slices_of_pie - (grunt.slices_of_pie_was || 0)
-
-      if persisted? and grunt.persisted?
-        nominations << Nomination.new(
-          grunt: grunt,
-          contribution_approval_request: self,
-          slices_of_pie_to_be_rewarded: reward
-        )
-      else
-        nominated_grunts << grunt
-        nominations.last.slices_of_pie_to_be_rewarded = reward
-      end
+      nominations << Nomination.new(
+        grunt: grunt,
+        contribution_approval_request: self,
+        slices_of_pie_to_be_rewarded: grunt.hourly_rate.to_f * hours.to_f
+      )
     end
 
     return nil
@@ -63,11 +55,7 @@ class ContributionApprovalRequest < ApplicationRecord
     return false if status == "pending" || status == "rejected" || processed
 
     nominations.each do |nomination|
-      beneficiary = nomination.grunt
-      reward = nomination.slices_of_pie_to_be_rewarded  # todo
-
-      beneficiary.slices_of_pie += reward
-      beneficiary.save!
+      nomination.update({ awarded: true })
     end
 
     self.processed = true
