@@ -22,6 +22,7 @@ ActiveRecord::Schema.define(version: 2018_09_04_003331) do
 
   create_table "grunts", force: :cascade do |t|
     t.string "name"
+    t.float "base_salary", default: 0.0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end

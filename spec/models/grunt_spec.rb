@@ -47,7 +47,7 @@ RSpec.describe Grunt, type: :model do
 
   describe '#base_salary' do
     it 'defaults to $100,000 USD' do
-      expect(Grunt.new.base_salary).to eql 100_000.00
+      expect(Grunt.new.base_salary).to eq 0
     end
   end
 

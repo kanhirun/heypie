@@ -68,7 +68,15 @@ RSpec.describe SlackController, type: :controller do
 
       results = controller.process_command(text)
 
-      expect(results).to eql({ "alice" => 22 })
+      expect(results).to eql({ "alice" => 22.0 })
+    end
+
+    it 'does it' do
+      text = "@alice 10.27"
+
+      results = controller.process_command(text)
+
+      expect(results).to eql({ "alice" => 10.27 })
     end
 
     it 'does it' do
@@ -77,8 +85,8 @@ RSpec.describe SlackController, type: :controller do
       results = controller.process_command(text)
 
       expect(results).to eql({ 
-        "alice" => 100,
-        "bob" => 100
+        "alice" => 100.0,
+        "bob" => 100.0
       })
     end
 
@@ -88,8 +96,8 @@ RSpec.describe SlackController, type: :controller do
       results = controller.process_command(text)
 
       expect(results).to eql({ 
-        "alice" => 11,
-        "bob" => 22
+        "alice" => 11.0,
+        "bob" => 22.0
       })
     end
 
@@ -99,9 +107,9 @@ RSpec.describe SlackController, type: :controller do
       results = controller.process_command(text)
 
       expect(results).to eql({ 
-        "alice" => 333,
-        "bob" => 999,
-        "james" => 999
+        "alice" => 333.0,
+        "bob" => 999.0,
+        "james" => 999.0
       })
     end
 
@@ -114,9 +122,9 @@ RSpec.describe SlackController, type: :controller do
     end
   end
 
-  xdescribe 'POST /slack/slash_commands/heypie-group' do
+  describe 'POST /slack/slash_commands/heypie-group' do
     it '/heypie-group @alice 22' do
-      Grunt.create!(name: "alice-id")
+      alice = Grunt.create!(name: "alice-id")
 
       mock_client = instance_double('SlackClient')
       controller.client = mock_client
@@ -124,48 +132,105 @@ RSpec.describe SlackController, type: :controller do
           members: [
             {
               id: "alice-id",
-              profile: {
-                display_name: "alice"
-              }
+              name: "alice"
             },
             {
               id: "bob-id",
-              profile: {
-                display_name: "bob"
-              }
+              name: "bob"
             }
           ]
       })
       allow(mock_client).to receive(:users_list).and_return(stubbed)
-      expect(mock_client).to receive(:chat_postMessage).with(hash_including(
-        text: "Hello, <@alice-id>!"
-      ))
+      allow(mock_client).to receive(:chat_postMessage).and_return(nil)
 
       command = from_slack('/heypie-group @alice 22')
-        .merge({ "channel_id": "9999"})
+        .merge({ "channel_id": "9999", "user_id": "alice-id"})
 
       post :heypie_group_command, params: command
+
+      contribution = ContributionApprovalRequest.last
+
+      contribution.voters = []
+      contribution.save!
+      results = contribution.process
+
+      expect(results).to be true
+      expect(alice.slices_of_pie.to_f).to eql(22 * alice.hourly_rate)
+    end
+
+    it '/heypie-group @alice @alice 10 @alice 5' do
     end
 
     it '/heypie-group @alice @bob 5.0' do
-      group = from_slack '/heypie-group @alice @bob 5.0'
+      alice = Grunt.create!(name: "alice-id", base_salary: 10_000)
+      bob = Grunt.create!(name: 'bob-id', base_salary: 7_000)
 
-      post :heypie_group_command, params: group
+      mock_client = instance_double('SlackClient')
+      controller.client = mock_client
+      stubbed = Slack::Messages::Message.new({
+          members: [
+            {
+              id: "alice-id",
+              name: "alice"
+            },
+            {
+              id: "bob-id",
+              name: "bob"
+            }
+          ]
+      })
+      allow(mock_client).to receive(:users_list).and_return(stubbed)
+      allow(mock_client).to receive(:chat_postMessage).and_return(nil)
 
-      expect(response).to have_http_status 501
-      # expect(response).to have_http_status 200
+      command = from_slack('/heypie-group @alice @bob 5.0')
+        .merge({ "channel_id": "9999", "user_id": "alice-id"})
+
+      post :heypie_group_command, params: command
+
+      contribution = ContributionApprovalRequest.last
+      contribution.voters = []
+      contribution.save!
+      results = contribution.process
+
+      expect(results).to be true
+      expect(alice.slices_of_pie.to_f).to eql(5 * alice.hourly_rate)
+      expect(bob.slices_of_pie.to_f).to eql(5 * bob.hourly_rate)
     end
 
     it '/heypie-group @alice 10 @bob 5' do
-      custom = from_slack '/heypie-group @alice 10 @bob 5'
-      bob = Grunt.new
+      alice = Grunt.create!(name: "alice-id", base_salary: 99_001)
+      bob = Grunt.create!(name: 'bob-id', base_salary: 7_333)
 
-      expect do
-        post :heypie_group_command, params: custom
-      end.to change { bob.slices_of_pie }.by(5)
+      mock_client = instance_double('SlackClient')
+      controller.client = mock_client
+      stubbed = Slack::Messages::Message.new({
+          members: [
+            {
+              id: "alice-id",
+              name: "alice"
+            },
+            {
+              id: "bob-id",
+              name: "bob"
+            }
+          ]
+      })
+      allow(mock_client).to receive(:users_list).and_return(stubbed)
+      allow(mock_client).to receive(:chat_postMessage).and_return(nil)
 
-      expect(response).to have_http_status 501
-      # expect(response).to have_http_status 200
+      command = from_slack('/heypie-group @alice 10.27 @bob 7.77')
+        .merge({ "channel_id": "9999", "user_id": "alice-id"})
+
+      post :heypie_group_command, params: command
+
+      contribution = ContributionApprovalRequest.last
+      contribution.voters = []
+      contribution.save!
+      results = contribution.process
+
+      expect(results).to be true
+      expect(alice.slices_of_pie.to_f).to be_within(1).of(10.27 * alice.hourly_rate)
+      expect(bob.slices_of_pie.to_f).to be_within(1).of(7.77 * bob.hourly_rate)
     end
 
     it '/heypie-group @here 10' do

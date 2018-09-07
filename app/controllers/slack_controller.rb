@@ -1,4 +1,5 @@
 require_relative './concerns/error_handling'
+require_relative './utils/slack_message_builder_better'
 require_relative './utils/slack_message_builder'
 
 class SlackController < ApplicationController
@@ -22,7 +23,7 @@ class SlackController < ApplicationController
       if token.starts_with?("@")
         token[1..token.length]
       else
-        token.to_i
+        token.to_f
       end
     end
 
@@ -31,7 +32,7 @@ class SlackController < ApplicationController
     processed.each do |x|
       if x.is_a? String
         deferred << x
-      elsif x.is_a? Integer
+      elsif x.is_a? Numeric
         # flushes out
         deferred.each do |y|
           results[y] = x
@@ -45,29 +46,52 @@ class SlackController < ApplicationController
     return results
   end
 
+  # todo: seems useful enough to extract..?
+  def mention(id)
+    "<@#{id}>"
+  end
+
   def heypie_group_command
     channel = params.fetch("channel_id")
-    command = params.fetch("text")
+    text = params.fetch("text")
     submitter_name = params.fetch("user_id")
-
-    # todo: seems useful enough to extract..?
-    def mention(id)
-      "<@#{id}>"
-    end
 
     users = client.users_list
     submitter = Grunt.find_by!(name: submitter_name)
 
-    matched = users.members.find do |member|
-      matching_name = member.dig(:profile, :display_name)
-      command.include? matching_name
+    # get only valid slack users
+    # returns <members>
+    matched_users = users.members.select do |member|
+      text.include? member.name
     end
 
-    if matched && mentioned = Grunt.find_by(name: matched.id)
-      model = ContributionApprovalRequest.new(
-        submitter: submitter
+    # map: Slack(user name => user id)
+    x = {}
+    process_command(text).each do |name, hours|
+      if found = matched_users.find{ |u| u.name == name }
+        x[found.id] = hours
+      end
+    end
+
+    # map: user id => grunt
+    y = {}
+    x.each do |id, hours|
+      if found = Grunt.find_by(name: id)
+        y[found] = hours
+      end
+    end
+
+    if y.present?
+      contribution = ContributionApprovalRequest.new(
+        submitter: submitter,
+        voters: Grunt.heypie_grunts
       )
-      message = SlackMessageBuilder.new(model, "N/A", 999, mentioned)
+      contribution.save!
+
+      contribution.contribute_hours(y)
+
+      message = SlackMessageBuilderBetter.new(contribution)
+
       text, attachments = message.build
 
       client.chat_postMessage(

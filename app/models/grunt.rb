@@ -15,8 +15,6 @@ class Grunt < ApplicationRecord
   # todo: rename to submissions or submitted_contributions
   has_many :contribution_approval_requests, foreign_key: :submitter_id
 
-  attribute :base_salary, :float, default: 100_000.0 # todo: hmm... 100K eh
-
   validates :name,        presence: true, uniqueness: true
   validates :base_salary, presence: true, numericality: true
 

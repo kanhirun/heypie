@@ -14,8 +14,8 @@ RSpec.describe ContributionApprovalRequest do
   # todo: move me to a service
   describe 'contribute_hours(dict)' do
     it 'creates nominations internally without persisting' do
-      bob   = Grunt.create!(name: "Bob")
-      alice = Grunt.create!(name: "Alice")
+      bob   = Grunt.create!(name: "Bob", base_salary: 100_000.00)
+      alice = Grunt.create!(name: "Alice", base_salary: 100_000.00)
       subject.submitter = Grunt.new
 
       expect do
