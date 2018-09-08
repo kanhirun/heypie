@@ -51,10 +51,16 @@ describe SlackMessageBuilder do
 
   it 'for single' do
     bob = Grunt.create!(slack_user_id: "Bob", base_salary: 1_000)
+
+    # in the past...
+    contribution = Contribution.create!(submitter: bob, voters: [])
+    contribution.contribute_hours(bob => 999)
+    contribution.process!
+
+    # displaying...
     contribution = Contribution.create!(submitter: bob, voters: [])
     contribution.contribute_hours(bob => 5)
     contribution.process!
-
     subject = SlackMessageBuilder.new(contribution)
 
     text = subject.request_body

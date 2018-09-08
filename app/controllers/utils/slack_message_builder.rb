@@ -66,8 +66,9 @@ class SlackMessageBuilder
     else
       # one grunt
       to = @model.nominated_grunts.first
-      time_in_hours = Nomination.where(grunt: to, contribution: @model).first.time_in_hours
-      slices_of_pie = to.nominations.first.slices_of_pie_to_be_rewarded
+      n = Nomination.where(grunt: to, contribution: @model).first
+      time_in_hours = n.time_in_hours
+      slices_of_pie = n.slices_of_pie_to_be_rewarded
 
       return <<~SLACK_TEMPLATE
         *Request:*
