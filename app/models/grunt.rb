@@ -15,8 +15,8 @@ class Grunt < ApplicationRecord
   # todo: rename to submissions or submitted_contributions
   has_many :contributions, foreign_key: :submitter_id
 
-  validates :name,        presence: true, uniqueness: true
-  validates :base_salary, presence: true, numericality: true
+  validates :slack_user_id, presence: true, uniqueness: true
+  validates :base_salary,   presence: true, numericality: true
 
   def slices_of_pie
     # todo: use scope

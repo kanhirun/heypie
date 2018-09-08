@@ -7,9 +7,9 @@ class SlackMessageBuilderBetter
 
   def build
     bot_username = "hey_pie"
-    submitter_name = @model.submitter.name
+    submitter_name = @model.submitter.slack_user_id
     winners = @model.nominated_grunts.map do |g|
-      "<@#{g.name}>"
+      "<@#{g.slack_user_id}>"
     end.join(",")
 
     text = <<~SLACK_TEMPLATE
@@ -59,9 +59,9 @@ class SlackMessageBuilderBetter
         if nomination = Nomination.find_by(grunt: voter, contribution: @model)
           start = nomination.grunt.slices_of_pie
           diff = nomination.slices_of_pie_to_be_rewarded
-          msg += "> *<@#{nomination.grunt.name}>: #{start} + #{diff} = #{start + diff}* :pie:\n"
+          msg += "> *<@#{nomination.grunt.slack_user_id}>: #{start} + #{diff} = #{start + diff}* :pie:\n"
         else
-          msg += "> <@#{voter.name}>: #{voter.slices_of_pie} + 0 = #{voter.slices_of_pie} :pie:\n"
+          msg += "> <@#{voter.slack_user_id}>: #{voter.slices_of_pie} + 0 = #{voter.slices_of_pie} :pie:\n"
         end
       end
 

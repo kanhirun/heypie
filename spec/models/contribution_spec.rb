@@ -14,8 +14,8 @@ RSpec.describe Contribution do
   # todo: move me to a service
   describe 'contribute_hours(dict)' do
     it 'creates nominations internally without persisting' do
-      bob   = Grunt.create!(name: "Bob", base_salary: 100_000.00)
-      alice = Grunt.create!(name: "Alice", base_salary: 100_000.00)
+      bob   = Grunt.create!(slack_user_id: "Bob", base_salary: 100_000.00)
+      alice = Grunt.create!(slack_user_id: "Alice", base_salary: 100_000.00)
       subject.submitter = Grunt.new
 
       expect do
@@ -50,7 +50,7 @@ RSpec.describe Contribution do
     end
 
     it 'returns rejected if there is just one rejected vote' do
-      g1, g2 = [ Grunt.create!(name: 'g1'), Grunt.create!(name: 'g2') ]
+      g1, g2 = [ Grunt.create!(slack_user_id: 'g1'), Grunt.create!(slack_user_id: 'g2') ]
       one_reject = Contribution.create!(submitter: Grunt.new, voters: [g1, g2])
       one_reject.votes.create! [
         { status: "approved", grunt: g1 },
@@ -63,7 +63,7 @@ RSpec.describe Contribution do
 
   describe '#process' do
     it 'rewards the beneficiaries with slices of pie' do
-      beneficiary = Grunt.create!(name: 'some-beneficiary')
+      beneficiary = Grunt.create!(slack_user_id: 'some-beneficiary')
 
       subject = Contribution.create!(
         submitter: Grunt.new,
@@ -83,7 +83,7 @@ RSpec.describe Contribution do
     end
 
     it 'cannot process more than once' do
-      beneficiary = Grunt.create!(name: 'some-beneficiary')
+      beneficiary = Grunt.create!(slack_user_id: 'some-beneficiary')
       reward = 100.00
 
       subject = Contribution.create!(
@@ -109,7 +109,7 @@ RSpec.describe Contribution do
     it 'returns false if voting is incomplete' do
       subject = Contribution.create!(
         submitter: Grunt.new,
-        voters: [ Grunt.create!(name: 'Alice'), Grunt.create!(name: 'Bob') ]
+        voters: [ Grunt.create!(slack_user_id: 'Alice'), Grunt.create!(slack_user_id: 'Bob') ]
       )
 
       expect(subject.status).to eql "pending"
@@ -123,7 +123,7 @@ RSpec.describe Contribution do
   describe '#approve!(from:)' do
     it 'sets a result' do
       subject = Contribution.create!(submitter: Grunt.new)
-      a_voter = subject.voters.create!(name: "a-voter")
+      a_voter = subject.voters.create!(slack_user_id: "a-voter")
       vote = Vote.find_by!(grunt: a_voter)
 
       subject.approve!(from: a_voter)
@@ -144,7 +144,7 @@ RSpec.describe Contribution do
     end
 
     it 'raises an error if voter already voted' do
-      voter = Grunt.create!(name: 'some-grunt')
+      voter = Grunt.create!(slack_user_id: 'some-grunt')
       subject = Contribution.create!(submitter: Grunt.new, voters: [voter])
 
       expect do
@@ -157,7 +157,7 @@ RSpec.describe Contribution do
   describe '#reject!(from:)' do
     it 'sets a result' do
       subject = Contribution.create!(submitter: Grunt.new)
-      a_voter = subject.voters.create!(name: "a-voter")
+      a_voter = subject.voters.create!(slack_user_id: "a-voter")
       vote = Vote.find_by!(grunt: a_voter)
 
       subject.reject!(from: a_voter)
@@ -178,7 +178,7 @@ RSpec.describe Contribution do
     end
 
     it 'raises an error if voter already voted' do
-      voter = Grunt.create!(name: 'some-grunt')
+      voter = Grunt.create!(slack_user_id: 'some-grunt')
       subject = Contribution.create!(submitter: Grunt.new, voters: [voter])
       vote = Vote.find_by!(grunt: voter)
 

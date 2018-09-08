@@ -10,7 +10,7 @@ class SlackMessageBuilder
 
   def build
     bot_username = "hey_pie"
-    submitter_name = @model.submitter.name
+    submitter_name = @model.submitter.slack_user_id
 
     text = <<~SLACK_TEMPLATE
       _*TxHash:* <https://etherscan.io/tx/0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842|0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842>_
@@ -19,7 +19,7 @@ class SlackMessageBuilder
       _*SocialContract (d190379):* (<https://github.com/kanhirun/hey-pie-social-contract/blame/d190379a0dd2640df5bc6d9f1e08312a99db914c/README.md|view>) (<https://github.com/kanhirun/hey-pie-social-contract/edit/master/README.md|edit>)_
 
       *Request:*
-      > <@#{submitter_name}> requested approval for *#{@time_in_hours} HOURS* which would award *#{@time_in_hours.to_f * @beneficiary.hourly_rate} SLICES OF PIE* to *<@#{@beneficiary.name}>*
+      > <@#{submitter_name}> requested approval for *#{@time_in_hours} HOURS* which would award *#{@time_in_hours.to_f * @beneficiary.hourly_rate} SLICES OF PIE* to *<@#{@beneficiary.slack_user_id}>*
       *Description:*
       #{description(@description)}
       *Requested Changes:*
@@ -61,9 +61,9 @@ class SlackMessageBuilder
         if nomination = Nomination.find_by(grunt: voter, contribution: @model)
           start = nomination.grunt.slices_of_pie
           diff = nomination.slices_of_pie_to_be_rewarded
-          msg += "> *<@#{nomination.grunt.name}>: #{start} + #{diff} = #{start + diff}* :pie:\n"
+          msg += "> *<@#{nomination.grunt.slack_user_id}>: #{start} + #{diff} = #{start + diff}* :pie:\n"
         else
-          msg += "> <@#{voter.name}>: #{voter.slices_of_pie} + 0 = #{voter.slices_of_pie} :pie:\n"
+          msg += "> <@#{voter.slack_user_id}>: #{voter.slices_of_pie} + 0 = #{voter.slices_of_pie} :pie:\n"
         end
       end
 

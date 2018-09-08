@@ -158,7 +158,7 @@ RSpec.describe SlackController, type: :controller do
 
   describe 'POST /slack/slash_commands/heypie-group' do
     it '/heypie-group @alice 22' do
-      alice = Grunt.create!(name: "alice-id")
+      alice = Grunt.create!(slack_user_id: "alice-id")
 
       mock_client = instance_double('SlackClient')
       controller.client = mock_client
@@ -196,8 +196,8 @@ RSpec.describe SlackController, type: :controller do
     end
 
     it '/heypie-group @alice @bob 5.0' do
-      alice = Grunt.create!(name: "alice-id", base_salary: 10_000)
-      bob = Grunt.create!(name: 'bob-id', base_salary: 7_000)
+      alice = Grunt.create!(slack_user_id: "alice-id", base_salary: 10_000)
+      bob = Grunt.create!(slack_user_id: 'bob-id', base_salary: 7_000)
 
       mock_client = instance_double('SlackClient')
       controller.client = mock_client
@@ -232,8 +232,8 @@ RSpec.describe SlackController, type: :controller do
     end
 
     it '/heypie-group @alice 10 @bob 5' do
-      alice = Grunt.create!(name: "alice-id", base_salary: 99_001)
-      bob = Grunt.create!(name: 'bob-id', base_salary: 7_333)
+      alice = Grunt.create!(slack_user_id: "alice-id", base_salary: 99_001)
+      bob = Grunt.create!(slack_user_id: 'bob-id', base_salary: 7_333)
 
       mock_client = instance_double('SlackClient')
       controller.client = mock_client
@@ -312,7 +312,7 @@ RSpec.describe SlackController, type: :controller do
     end
 
     it 'returns 400 BAD REQUEST if the request data is unexpected' do
-      Grunt.create!(name: "Alice")
+      Grunt.create!(slack_user_id: "Alice")
 
       client = instance_double('Slack::Client')
       controller.client = client
@@ -324,8 +324,8 @@ RSpec.describe SlackController, type: :controller do
     end
 
     it 'returns 200 OK if user is found' do
-      alice = Grunt.create!(name: "Alice")
-      Grunt.create!(name: "Submitter")
+      alice = Grunt.create!(slack_user_id: "Alice")
+      Grunt.create!(slack_user_id: "Submitter")
 
       client = instance_double('Slack::Client', chat_postMessage: nil)
       controller.client = client
@@ -368,8 +368,8 @@ RSpec.describe SlackController, type: :controller do
 
   describe 'voting' do
     it 'rejects a vote' do
-      alice = Grunt.new(name: "Alice")
-      bob = Grunt.new(name: "Bob")  # is the voter
+      alice = Grunt.new(slack_user_id: "Alice")
+      bob = Grunt.new(slack_user_id: "Bob")  # is the voter
       contribution = Contribution.new(
         submitter: Grunt.new,
         voters: [alice, bob],
@@ -425,7 +425,7 @@ RSpec.describe SlackController, type: :controller do
           'ts': 'some-ts'
         }
       }
-      Contribution.create!(submitter: Grunt.create!(name: 'submitter'))
+      Contribution.create!(submitter: Grunt.create!(slack_user_id: 'submitter'))
 
       post :events, params: params
 

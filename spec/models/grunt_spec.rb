@@ -5,11 +5,11 @@ RSpec.describe Grunt, type: :model do
   it { should have_many :contributions }
 
   # Note:
-  # The `name` attribute is currently being used to identify
+  # The `slack_user_id` attribute is currently being used to identify
   # the user's slack identifier.
-  describe '#name' do
-    it { should validate_presence_of :name }
-    it { should validate_uniqueness_of :name }
+  describe '#slack_user_id' do
+    it { should validate_presence_of :slack_user_id }
+    it { should validate_uniqueness_of :slack_user_id }
   end
 
   describe '#base_salary' do

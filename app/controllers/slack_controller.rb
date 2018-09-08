@@ -71,7 +71,7 @@ class SlackController < ApplicationController
     submitter_name = params.fetch("user_id")
 
     users = client.users_list
-    submitter = Grunt.find_by!(name: submitter_name)
+    submitter = Grunt.find_by!(slack_user_id: submitter_name)
 
     # get only valid slack users
     # returns <members>
@@ -90,7 +90,7 @@ class SlackController < ApplicationController
     # map: user id => grunt
     y = {}
     x.each do |id, hours|
-      if found = Grunt.find_by(name: id)
+      if found = Grunt.find_by(slack_user_id: id)
         y[found] = hours
       end
     end
@@ -166,8 +166,8 @@ class SlackController < ApplicationController
     time_in_hours  = deserialized.fetch("submission").fetch("contribution_hours")
     description    = deserialized.fetch("submission").fetch("contribution_description")
 
-    beneficiary = Grunt.find_by!(name: nominated)
-    submitter   = Grunt.find_by!(name: submitter_name)
+    beneficiary = Grunt.find_by!(slack_user_id: nominated)
+    submitter   = Grunt.find_by!(slack_user_id: submitter_name)
 
     contribution = Contribution.new(
       submitter: submitter,
@@ -194,7 +194,7 @@ class SlackController < ApplicationController
     origin = payload.fetch("channel").fetch("id")
     ts = payload.fetch("message_ts")
 
-    voter = Grunt.find_by(name: username)
+    voter = Grunt.find_by(slack_user_id: username)
 
     if voter.blank?
       render status: 404 and return 
@@ -210,7 +210,7 @@ class SlackController < ApplicationController
     begin
       if payload["actions"].first["name"] == "Approve"
         if req.approve!(from: voter)
-          client.chat_postMessage(channel: origin, text: "`Approved by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
+          client.chat_postMessage(channel: origin, text: "`Approved by:` <@#{voter.slack_user_id}>", attachments: [], as_user: false, thread_ts: ts)
 
           if req.process
             client.chat_postMessage(channel: origin, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
@@ -220,11 +220,11 @@ class SlackController < ApplicationController
         end
       else
         if req.reject!(from: voter)
-          client.chat_postMessage(channel: origin, text: "`Rejected by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
+          client.chat_postMessage(channel: origin, text: "`Rejected by:` <@#{voter.slack_user_id}>", attachments: [], as_user: false, thread_ts: ts)
         end
       end
     rescue AlreadyVotedError
-      client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: voter.name, thread_ts: ts)
+      client.chat_postEphemeral(channel: origin, text: '`You already voted.`', attachment: [], as_user: false, user: voter.slack_user_id, thread_ts: ts)
     end
 
     return
