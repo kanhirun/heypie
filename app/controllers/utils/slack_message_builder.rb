@@ -36,7 +36,11 @@ class SlackMessageBuilder
   end
 
   def header
-    bot_username = "hey_pie"
+    if Rails.env.production?
+      bot_username = "hey_pie"
+    else
+      bot_username = "hey_pie_test"
+    end
     submitter = @model.submitter.slack_user_id
 
     <<~SLACK_TEMPLATE
