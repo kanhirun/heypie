@@ -2,39 +2,6 @@ require 'rails_helper'
 
 RSpec.describe SlackController, type: :controller do
 
-  describe '#before_action' do
-    it 'posts a message to the user indicating we are in test mode' do
-      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("test"))
-      channel = "hey-pie-contributions"
-
-      mock_client = instance_double("MockClient")
-      controller.client = mock_client
-      expect(mock_client).to receive(:chat_postMessage).with(
-        hash_including(text: "Sorry, the app is currently testing.")
-      )
-
-
-      post :heypie_command, params: {"channel": {
-        "name": channel
-      }}
-    end
-
-    it 'does not posts a message to the user indicating we are in test mode' do
-      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
-      channel = 'hey-pie-contributions'
-
-      mock_client = instance_double("MockClient")
-      controller.client = mock_client
-      expect(mock_client).not_to receive(:chat_postMessage).with(
-        hash_including(text: "Sorry, the app is currently testing.")
-      )
-
-      post :heypie_command, params: {"channel": {
-        "name": channel
-      }}
-    end
-  end
-
   describe 'POST /slack/slash_commands/heypie' do
     it 'opens a dialog' do
       client = instance_double('Slack::Client')

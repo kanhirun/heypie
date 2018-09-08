@@ -1,30 +1,12 @@
 class SlackMessageBuilder
 
-  # todo: too many args, but good enough for now
-  def initialize(model, description, time_in_hours, beneficiary)
+  def initialize(model, description = nil)
     @model = model
     @description = description
-    @time_in_hours = time_in_hours
-    @beneficiary = beneficiary
   end
 
   def build
-    bot_username = "hey_pie"
-    submitter_name = @model.submitter.slack_user_id
-
-    text = <<~SLACK_TEMPLATE
-      _*TxHash:* <https://etherscan.io/tx/0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842|0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842>_
-      _*From:* <@#{submitter_name}> (<https://etherscan.io/address/0x1038ae6fcd73a1846f8ea6ac1ff3a4fe57eb76d7|0x1038ae6fcd73a1846f8ea6ac1ff3a4fe57eb76d7>)_
-      _*To:* <@#{bot_username}> (<https://etherscan.io/address/0x8d12a197cb00d4747a1fe03395095ce2a5cc6819#code|0x8d12a197cb00d4747a1fe03395095ce2a5cc6819>)_
-      _*SocialContract (d190379):* (<https://github.com/kanhirun/hey-pie-social-contract/blame/d190379a0dd2640df5bc6d9f1e08312a99db914c/README.md|view>) (<https://github.com/kanhirun/hey-pie-social-contract/edit/master/README.md|edit>)_
-
-      *Request:*
-      > <@#{submitter_name}> requested approval for *#{@time_in_hours} HOURS* which would award *#{@time_in_hours.to_f * @beneficiary.hourly_rate} SLICES OF PIE* to *<@#{@beneficiary.slack_user_id}>*
-      *Description:*
-      #{description(@description)}
-      *Requested Changes:*
-      #{requested_changes}
-    SLACK_TEMPLATE
+    text = header + "\n" + request_body + description + requested_changes
 
     attachments = [
       {
@@ -53,8 +35,53 @@ class SlackMessageBuilder
     return text, attachments
   end
 
+  def header
+    bot_username = "hey_pie"
+    submitter = @model.submitter.slack_user_id
+
+    <<~SLACK_TEMPLATE
+      _*TxHash:* <https://etherscan.io/tx/0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842|0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842>_
+      _*From:* <@#{submitter}> (<https://etherscan.io/address/0x1038ae6fcd73a1846f8ea6ac1ff3a4fe57eb76d7|0x1038ae6fcd73a1846f8ea6ac1ff3a4fe57eb76d7>)_
+      _*To:* <@#{bot_username}> (<https://etherscan.io/address/0x8d12a197cb00d4747a1fe03395095ce2a5cc6819#code|0x8d12a197cb00d4747a1fe03395095ce2a5cc6819>)_
+      _*SocialContract (d190379):* (<https://github.com/kanhirun/hey-pie-social-contract/blame/d190379a0dd2640df5bc6d9f1e08312a99db914c/README.md|view>) (<https://github.com/kanhirun/hey-pie-social-contract/edit/master/README.md|edit>)_
+    SLACK_TEMPLATE
+  end
+
+  def request_body
+    submitter = @model.submitter.slack_user_id
+
+    if @model.nominated_grunts.many?
+      many = @model.nominated_grunts.map do |grunt|
+        "<@#{grunt.slack_user_id}>"
+      end.join(', ')
+
+      return <<~SLACK_TEMPLATE
+        *Request:*
+        > <@#{submitter}> requested approval to award and recognize *#{many}*
+      SLACK_TEMPLATE
+    else
+      to = @model.nominated_grunts.first
+      time_in_hours = to.nominations.first.time_in_hours
+      slices_of_pie = to.nominations.first.slices_of_pie_to_be_rewarded
+
+      return <<~SLACK_TEMPLATE
+        *Request:*
+        > <@#{submitter}> requested approval for *#{time_in_hours} HOURS* which would award *#{slices_of_pie} SLICES OF PIE* to *<@#{to.slack_user_id}>*
+      SLACK_TEMPLATE
+    end
+  end
+
+  def description
+    return "" if @description.nil?
+
+    <<~SLACK_TEMPLATE
+      *Description:*
+      #{quote(@description)}
+    SLACK_TEMPLATE
+  end
+
   def requested_changes
-    msg = ""
+    msg = "*Requested Changes:*\n"
 
     @model.voters
       .sort_by do |x|
@@ -77,7 +104,7 @@ class SlackMessageBuilder
     return msg
   end
 
-  def description(many_lines_of_text)
+  def quote(many_lines_of_text)
     many_lines_of_text.split("\n").map do |line|
       "> #{line}"
     end.join("\n")

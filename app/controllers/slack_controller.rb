@@ -1,5 +1,4 @@
 require_relative './concerns/error_handling'
-require_relative './utils/slack_message_builder_better'
 require_relative './utils/slack_message_builder'
 
 class SlackController < ApplicationController
@@ -8,22 +7,7 @@ class SlackController < ApplicationController
   rescue_from KeyError, with: :bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
-  before_action :check_whether_production_channel
-
   SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
-
-  def check_whether_production_channel
-    channel = params.dig("channel", "name") || params["channel_name"]
-
-    if channel and channel == "hey-pie-contributions" and !Rails.env.production?
-      client.chat_postMessage(
-        channel: channel,
-        text: "Sorry, the app is currently being tested. Please chat with kel if you want production support.",
-        attachments: []
-      )
-      head(400)
-    end
-  end
 
   # a naive algorithm for interpreting text intending to
   # organize users to their contributions
@@ -100,7 +84,7 @@ class SlackController < ApplicationController
 
       contribution.contribute_hours(y)
 
-      message = SlackMessageBuilderBetter.new(contribution)
+      message = SlackMessageBuilder.new(contribution)
 
       text, attachments = message.build
 
@@ -172,7 +156,7 @@ class SlackController < ApplicationController
     contribution.contribute_hours(beneficiary => time_in_hours)
     contribution.save!
 
-    formatter = SlackMessageBuilder.new(contribution, description, time_in_hours, beneficiary)
+    formatter = SlackMessageBuilder.new(contribution, description)
     text, attachments = formatter.build
 
     # todo: capture slack error

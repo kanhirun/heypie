@@ -28,6 +28,7 @@ class Contribution < ApplicationRecord
       nominations << Nomination.new(
         grunt: grunt,
         contribution: self,
+        time_in_hours: hours.to_f,
         slices_of_pie_to_be_rewarded: grunt.hourly_rate.to_f * hours.to_f
       )
     end
@@ -61,6 +62,10 @@ class Contribution < ApplicationRecord
     self.processed = true
 
     return true
+  end
+
+  def process!
+    raise StandardError.new("Contribution wasn't all approved.") if process == false
   end
 
   def approve!(from:)
