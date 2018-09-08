@@ -53,11 +53,18 @@ class SlackMessageBuilder
     return text, attachments
   end
 
-  private
-    def requested_changes
-      msg = ""
+  def requested_changes
+    msg = ""
 
-      @model.voters.sort_by(&:slices_of_pie).each do |voter|
+    @model.voters
+      .sort_by do |x|
+        if nomination = Nomination.find_by(grunt: x, contribution: @model)
+          -(x.slices_of_pie + nomination.slices_of_pie_to_be_rewarded)
+        else
+          -x.slices_of_pie
+        end
+      end
+     .each do |voter|
         if nomination = Nomination.find_by(grunt: voter, contribution: @model)
           start = nomination.grunt.slices_of_pie
           diff = nomination.slices_of_pie_to_be_rewarded
@@ -67,13 +74,13 @@ class SlackMessageBuilder
         end
       end
 
-      return msg
-    end
+    return msg
+  end
 
-    def description(many_lines_of_text)
-      many_lines_of_text.split("\n").map do |line|
-        "> #{line}"
-      end.join("\n")
-    end
+  def description(many_lines_of_text)
+    many_lines_of_text.split("\n").map do |line|
+      "> #{line}"
+    end.join("\n")
+  end
 end
 

@@ -1,8 +1,10 @@
+require 'rails_helper'
+
 require_relative '../../../app/controllers/utils/slack_message_builder'
 
 # todo: fix these issues
-xdescribe SlackMessageBuilder do
-  describe 'format_description(text)' do
+describe SlackMessageBuilder do
+  xdescribe 'format_description(text)' do
     it 'quotes very long text' do
       large_text = <<~RAW_TEXT
         aaaaaaaaaaaaaaaa
@@ -27,7 +29,7 @@ xdescribe SlackMessageBuilder do
   end
 
   describe '#requested_changes(req)' do
-    it "returns each person's pie" do
+    xit "returns each person's pie" do
       alice = Grunt.new(name: "alice")
       bob = Grunt.new(name: "bob")
       alice.slices_of_pie = 258
@@ -50,4 +52,30 @@ xdescribe SlackMessageBuilder do
       SLACK_FORMATTED
     end
   end
-end
+
+  it 'sorts like a leaderboard' do
+    alice = Grunt.create(slack_user_id: "alice")
+    bob = Grunt.create(slack_user_id: "bob")
+
+    old = Contribution.create!(
+      submitter: Grunt.new,
+      voters: [bob, alice]
+    )
+    old.nominations.create!({ grunt: bob, slices_of_pie_to_be_rewarded: 1, contribution: old, awarded: true })
+
+    contribution = Contribution.create!(
+      submitter: Grunt.new,
+      voters: [bob, alice]
+    )
+    contribution.nominations.create!(
+      { grunt: alice, slices_of_pie_to_be_rewarded: 9999 }
+    )
+
+    results = SlackMessageBuilder.new(contribution, "", 10, bob ).requested_changes
+
+    expect(results).to eql <<~SLACK_FORMATTED
+     > *<@alice>: 0 + 9999 = 9999* :pie:
+     > <@bob>: 1 + 0 = 1 :pie:
+    SLACK_FORMATTED
+    end
+  end
