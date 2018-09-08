@@ -61,11 +61,6 @@ class SlackController < ApplicationController
     return results
   end
 
-  # todo: seems useful enough to extract..?
-  def mention(id)
-    "<@#{id}>"
-  end
-
   def heypie_group_command
     channel = params.fetch("channel_id")
     text = params.fetch("text")
