@@ -82,7 +82,7 @@ class SlackController < ApplicationController
     end
 
     if y.present?
-      contribution = ContributionApprovalRequest.new(
+      contribution = Contribution.new(
         submitter: submitter,
         voters: Grunt.heypie_grunts
       )
@@ -155,14 +155,14 @@ class SlackController < ApplicationController
     beneficiary = Grunt.find_by!(name: nominated)
     submitter   = Grunt.find_by!(name: submitter_name)
 
-    model = ContributionApprovalRequest.new(
+    contribution = Contribution.new(
       submitter: submitter,
       voters: Grunt.heypie_grunts
     )
-    model.contribute_hours(beneficiary => time_in_hours)
-    model.save!
+    contribution.contribute_hours(beneficiary => time_in_hours)
+    contribution.save!
 
-    formatter = SlackMessageBuilder.new(model, description, time_in_hours, beneficiary)
+    formatter = SlackMessageBuilder.new(contribution, description, time_in_hours, beneficiary)
     text, attachments = formatter.build
 
     # todo: capture slack error
@@ -186,7 +186,7 @@ class SlackController < ApplicationController
       render status: 404 and return 
     end
 
-    req = ContributionApprovalRequest.find_by(ts: ts)
+    req = Contribution.find_by(ts: ts)
 
     if req.nil?
       puts 'could not find ts'
@@ -224,7 +224,7 @@ class SlackController < ApplicationController
     end
 
     ts = params["event"]["ts"]
-    if req = ContributionApprovalRequest.last
+    if req = Contribution.last
       req.update({ts: ts})
     end
   end

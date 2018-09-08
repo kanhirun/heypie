@@ -1,6 +1,6 @@
 class Vote < ApplicationRecord
   belongs_to :grunt
-  belongs_to :contribution_approval_request
+  belongs_to :contribution
 
   enum status: [ "pending", "approved", "rejected" ]
 

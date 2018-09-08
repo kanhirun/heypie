@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Grunt, type: :model do
 
-  it { should have_many :contribution_approval_requests }
+  it { should have_many :contributions }
 
   # Note:
   # The `name` attribute is currently being used to identify

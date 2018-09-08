@@ -1,9 +1,9 @@
 require 'rails_helper'
 
-require_relative '../../app/models/contribution_approval_request'
+require_relative '../../app/models/contribution'
 
 # todo: improve API so that we can represent the rewards
-RSpec.describe ContributionApprovalRequest do
+RSpec.describe Contribution do
   it { should belong_to :submitter }
   it { should validate_presence_of :submitter }
   it { should have_many :nominations }
@@ -38,20 +38,20 @@ RSpec.describe ContributionApprovalRequest do
   describe '#status' do
     it 'defaults to pending' do
       some_voters = [Grunt.new, Grunt.new]
-      with_voters = ContributionApprovalRequest.new(voters: some_voters)
+      with_voters = Contribution.new(voters: some_voters)
 
       expect(with_voters.status).to eql 'pending'
     end
 
     it 'returns approved if there are no voters' do
-      no_voters = ContributionApprovalRequest.new(voters: [])
+      no_voters = Contribution.new(voters: [])
 
       expect(no_voters.status).to eql 'approved'
     end
 
     it 'returns rejected if there is just one rejected vote' do
       g1, g2 = [ Grunt.create!(name: 'g1'), Grunt.create!(name: 'g2') ]
-      one_reject = ContributionApprovalRequest.create!(submitter: Grunt.new, voters: [g1, g2])
+      one_reject = Contribution.create!(submitter: Grunt.new, voters: [g1, g2])
       one_reject.votes.create! [
         { status: "approved", grunt: g1 },
         { status: "rejected", grunt: g2 }
@@ -65,13 +65,13 @@ RSpec.describe ContributionApprovalRequest do
     it 'rewards the beneficiaries with slices of pie' do
       beneficiary = Grunt.create!(name: 'some-beneficiary')
 
-      subject = ContributionApprovalRequest.create!(
+      subject = Contribution.create!(
         submitter: Grunt.new,
         voters: []
       )
 
       subject.nominations.create!({
-        contribution_approval_request: subject,
+        contribution: subject,
         grunt: beneficiary,
         slices_of_pie_to_be_rewarded: 100
       })
@@ -86,13 +86,13 @@ RSpec.describe ContributionApprovalRequest do
       beneficiary = Grunt.create!(name: 'some-beneficiary')
       reward = 100.00
 
-      subject = ContributionApprovalRequest.create!(
+      subject = Contribution.create!(
         submitter: Grunt.new,
         voters: []
       )
 
       subject.nominations.create!({
-        contribution_approval_request: subject,
+        contribution: subject,
         grunt: beneficiary,
         slices_of_pie_to_be_rewarded: reward
       })
@@ -107,7 +107,7 @@ RSpec.describe ContributionApprovalRequest do
     end
 
     it 'returns false if voting is incomplete' do
-      subject = ContributionApprovalRequest.create!(
+      subject = Contribution.create!(
         submitter: Grunt.new,
         voters: [ Grunt.create!(name: 'Alice'), Grunt.create!(name: 'Bob') ]
       )
@@ -122,7 +122,7 @@ RSpec.describe ContributionApprovalRequest do
 
   describe '#approve!(from:)' do
     it 'sets a result' do
-      subject = ContributionApprovalRequest.create!(submitter: Grunt.new)
+      subject = Contribution.create!(submitter: Grunt.new)
       a_voter = subject.voters.create!(name: "a-voter")
       vote = Vote.find_by!(grunt: a_voter)
 
@@ -136,7 +136,7 @@ RSpec.describe ContributionApprovalRequest do
     it 'raises an error when a voter is an outsider' do
       outsider = Grunt.new
       nobody = []
-      subject = ContributionApprovalRequest.new(voters: nobody)
+      subject = Contribution.new(voters: nobody)
 
       expect do
         subject.approve!(from: outsider)
@@ -145,7 +145,7 @@ RSpec.describe ContributionApprovalRequest do
 
     it 'raises an error if voter already voted' do
       voter = Grunt.create!(name: 'some-grunt')
-      subject = ContributionApprovalRequest.create!(submitter: Grunt.new, voters: [voter])
+      subject = Contribution.create!(submitter: Grunt.new, voters: [voter])
 
       expect do
         subject.approve!(from: voter)
@@ -156,7 +156,7 @@ RSpec.describe ContributionApprovalRequest do
 
   describe '#reject!(from:)' do
     it 'sets a result' do
-      subject = ContributionApprovalRequest.create!(submitter: Grunt.new)
+      subject = Contribution.create!(submitter: Grunt.new)
       a_voter = subject.voters.create!(name: "a-voter")
       vote = Vote.find_by!(grunt: a_voter)
 
@@ -170,7 +170,7 @@ RSpec.describe ContributionApprovalRequest do
     it 'raises an error when a voter is an outsider' do
       outsider = Grunt.new
       nobody = []
-      subject = ContributionApprovalRequest.new(voters: nobody)
+      subject = Contribution.new(voters: nobody)
 
       expect do
         subject.reject!(from: outsider)
@@ -179,7 +179,7 @@ RSpec.describe ContributionApprovalRequest do
 
     it 'raises an error if voter already voted' do
       voter = Grunt.create!(name: 'some-grunt')
-      subject = ContributionApprovalRequest.create!(submitter: Grunt.new, voters: [voter])
+      subject = Contribution.create!(submitter: Grunt.new, voters: [voter])
       vote = Vote.find_by!(grunt: voter)
 
       expect do
@@ -198,7 +198,7 @@ RSpec.describe ContributionApprovalRequest do
 
     it 'credits only if 100% approval' do
       # a_beneficiary = Grunt.new
-      # subject = ContributionApprovalRequest.new(
+      # subject = Contribution.new(
       #   nominated_grunts: [a_beneficiary],
       #   voters: some_approvers
       # )

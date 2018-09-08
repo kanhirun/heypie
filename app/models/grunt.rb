@@ -13,7 +13,7 @@ class Grunt < ApplicationRecord
   has_many :nominations
 
   # todo: rename to submissions or submitted_contributions
-  has_many :contribution_approval_requests, foreign_key: :submitter_id
+  has_many :contributions, foreign_key: :submitter_id
 
   validates :name,        presence: true, uniqueness: true
   validates :base_salary, presence: true, numericality: true

@@ -27,7 +27,7 @@ class SlackMessageBuilderBetter
     attachments = [
       {
         fallback: "Make your decisions here: https://thepieslicer.com/home/2580",
-        callback_id: "contribution_approval_request",
+        callback_id: "contribution",
         text: "Would you like to *approve* or *reject* this contribution?",
         actions: [
           {
@@ -56,7 +56,7 @@ class SlackMessageBuilderBetter
       msg = ""
 
       @model.voters.sort_by(&:slices_of_pie).each do |voter|
-        if nomination = Nomination.find_by(grunt: voter, contribution_approval_request: @model)
+        if nomination = Nomination.find_by(grunt: voter, contribution: @model)
           start = nomination.grunt.slices_of_pie
           diff = nomination.slices_of_pie_to_be_rewarded
           msg += "> *<@#{nomination.grunt.name}>: #{start} + #{diff} = #{start + diff}* :pie:\n"

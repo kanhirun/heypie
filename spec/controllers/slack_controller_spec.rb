@@ -148,7 +148,7 @@ RSpec.describe SlackController, type: :controller do
 
       post :heypie_group_command, params: command
 
-      contribution = ContributionApprovalRequest.last
+      contribution = Contribution.last
 
       contribution.voters = []
       contribution.save!
@@ -187,7 +187,7 @@ RSpec.describe SlackController, type: :controller do
 
       post :heypie_group_command, params: command
 
-      contribution = ContributionApprovalRequest.last
+      contribution = Contribution.last
       contribution.voters = []
       contribution.save!
       results = contribution.process
@@ -223,7 +223,7 @@ RSpec.describe SlackController, type: :controller do
 
       post :heypie_group_command, params: command
 
-      contribution = ContributionApprovalRequest.last
+      contribution = Contribution.last
       contribution.voters = []
       contribution.save!
       results = contribution.process
@@ -318,7 +318,7 @@ RSpec.describe SlackController, type: :controller do
       # todo: not sure why slack doesn't like this?
       # expect(response).to have_http_status :ok
 
-      contribution = ContributionApprovalRequest.last
+      contribution = Contribution.last
       contribution.voters = []
       contribution.process
       contribution.save!
@@ -336,7 +336,7 @@ RSpec.describe SlackController, type: :controller do
     it 'rejects a vote' do
       alice = Grunt.new(name: "Alice")
       bob = Grunt.new(name: "Bob")  # is the voter
-      model = ContributionApprovalRequest.new(
+      contribution = Contribution.new(
         submitter: Grunt.new,
         voters: [alice, bob],
         ts: "my-ts"
@@ -344,12 +344,12 @@ RSpec.describe SlackController, type: :controller do
       mock_client = instance_double("NullClient").as_null_object
       controller.client = mock_client
 
-      model.contribute_hours({
+      contribution.contribute_hours({
         bob => 10,
         alice => 5
       })
 
-      model.save!
+      contribution.save!
 
       params = JSON({
         "user": { "id": "Bob" },  # here it is
@@ -364,7 +364,7 @@ RSpec.describe SlackController, type: :controller do
 
       alice.reload
 
-      expect(model.processed).to be false
+      expect(contribution.processed).to be false
       expect(alice.slices_of_pie).to eql 0
       expect(response).to have_http_status 204
     end
@@ -391,11 +391,11 @@ RSpec.describe SlackController, type: :controller do
           'ts': 'some-ts'
         }
       }
-      ContributionApprovalRequest.create!(submitter: Grunt.create!(name: 'submitter'))
+      Contribution.create!(submitter: Grunt.create!(name: 'submitter'))
 
       post :events, params: params
 
-      expect(ContributionApprovalRequest.last.ts).to eql 'some-ts'
+      expect(Contribution.last.ts).to eql 'some-ts'
     end
   end
 end

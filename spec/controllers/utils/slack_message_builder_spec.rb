@@ -32,7 +32,7 @@ xdescribe SlackMessageBuilder do
       bob = Grunt.new(name: "bob")
       alice.slices_of_pie = 258
       bob.slices_of_pie = 10
-      req = ContributionApprovalRequest.create!(
+      req = Contribution.create!(
         submitter: Grunt.new,
         voters: [bob, alice]
       )

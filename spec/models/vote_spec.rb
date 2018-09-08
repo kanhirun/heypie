@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Vote, type: :model do
   it { should belong_to :grunt }
-  it { should belong_to :contribution_approval_request }
+  it { should belong_to :contribution }
 
   describe '#status' do
     it 'defaults to pending' do

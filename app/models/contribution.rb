@@ -5,7 +5,7 @@ class CannotVoteIfYouAreAnOutsiderError < StandardError; end
 class AlreadyVotedError < StandardError; end
 class NotFinishedVotingError < StandardError; end
 
-class ContributionApprovalRequest < ApplicationRecord
+class Contribution < ApplicationRecord
 
   belongs_to :submitter, class_name: 'Grunt', foreign_key: :submitter_id
   has_many :nominations
@@ -27,7 +27,7 @@ class ContributionApprovalRequest < ApplicationRecord
     grunt_to_hours.each do |grunt, hours|
       nominations << Nomination.new(
         grunt: grunt,
-        contribution_approval_request: self,
+        contribution: self,
         slices_of_pie_to_be_rewarded: grunt.hourly_rate.to_f * hours.to_f
       )
     end
@@ -77,7 +77,7 @@ class ContributionApprovalRequest < ApplicationRecord
 
   private
     def get_vote!(from:)
-      vote = Vote.find_by(grunt: from, contribution_approval_request: self)
+      vote = Vote.find_by(grunt: from, contribution: self)
 
       raise CannotVoteIfYouAreAnOutsiderError.new if voters.exclude?(from)
       raise AlreadyVotedError.new if vote.already_voted?
