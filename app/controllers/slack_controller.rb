@@ -8,7 +8,21 @@ class SlackController < ApplicationController
   rescue_from KeyError, with: :bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
+  before_action :check_whether_production_channel
+
   SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
+
+  def check_whether_production_channel
+    channel = params["channel"]["name"]
+
+    if channel and channel == "hey-pie-contributions" and !Rails.env.production?
+      client.chat_postMessage(
+        channel: channel,
+        text: "Sorry, the app is currently testing.",
+        attachments: []
+      )
+    end
+  end
 
   # a naive algorithm for interpreting text intending to
   # organize users to their contributions
