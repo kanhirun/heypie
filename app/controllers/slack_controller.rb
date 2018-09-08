@@ -196,7 +196,7 @@ class SlackController < ApplicationController
     begin
       if payload["actions"].first["name"] == "Approve"
         if req.approve!(from: voter)
-          client.chat_postMessage(channel: origin, text: "`Approved by:` <@#{voter.name}>", attachments: [], as_user: true, thread_ts: ts)
+          client.chat_postMessage(channel: origin, text: "`Approved by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
 
           if req.process
             client.chat_postMessage(channel: origin, text: "`Finalized on the blockchain` :100:", attachments: [], as_user: false, thread_ts: ts)
@@ -206,7 +206,7 @@ class SlackController < ApplicationController
         end
       else
         if req.reject!(from: voter)
-          client.chat_postMessage(channel: origin, text: "`Rejected by:` <@#{voter.name}>", attachments: [], as_user: true, thread_ts: ts)
+          client.chat_postMessage(channel: origin, text: "`Rejected by:` <@#{voter.name}>", attachments: [], as_user: false, thread_ts: ts)
         end
       end
     rescue AlreadyVotedError
