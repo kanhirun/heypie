@@ -13,7 +13,7 @@ class SlackController < ApplicationController
   SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
 
   def check_whether_production_channel
-    channel = params["channel"]["name"]
+    channel = params.dig("channel", "name")
 
     if channel and channel == "hey-pie-contributions" and !Rails.env.production?
       client.chat_postMessage(
