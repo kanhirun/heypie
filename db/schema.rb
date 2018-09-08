@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_09_08_164200) do
+ActiveRecord::Schema.define(version: 2018_09_08_183143) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -25,6 +25,8 @@ ActiveRecord::Schema.define(version: 2018_09_08_164200) do
     t.float "base_salary", default: 0.0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "slack_icon_url"
+    t.string "slack_username"
   end
 
   create_table "nominations", force: :cascade do |t|
