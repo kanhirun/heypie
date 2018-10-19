@@ -7,12 +7,16 @@ class SlackController < ApplicationController
   rescue_from KeyError, with: :bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
-  SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
-
   def authenticate
     if params[:error] == "access_denied"
       render plain: "You've denied permissions.", status: 400 and return
     elsif params[:code].present?
+      client_id     = Rails.application.credentials.slack[:client_id]
+      client_secret = Rails.application.credentials.slack[:client_secret]
+      code = params[:code]
+
+      client.oauth_access(client_id: client_id, client_secret: client_secret, code: code)
+
       render plain: "Thanks! You're ready to try out Hey, Pie!", status: 200 and return
     end
 
@@ -142,7 +146,8 @@ class SlackController < ApplicationController
     begin
       client.dialog_open(trigger_id: trigger_id, dialog: dialog)
       render status: 204
-    rescue Slack::Web::Api::Errors::SlackError  # todo: target this error
+    rescue Slack::Web::Api::Errors::SlackError => e  # todo: target this error
+      puts e
       render status: 504
     end
   end
@@ -253,7 +258,8 @@ class SlackController < ApplicationController
   end
 
   def client
-    @client ||= Slack::Web::Client.new(token: SLACK_BOT_TOKEN)
+    token = Rails.application.credentials.slack[:bot_oauth_access_token]
+    @client ||= Slack::Web::Client.new(token: token)
   end
 
   # for testing
