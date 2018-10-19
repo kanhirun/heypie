@@ -13,7 +13,7 @@ class SlackController < ApplicationController
     if params[:error] == "access_denied"
       render plain: "You've denied permissions.", status: 400 and return
     elsif params[:code].present?
-      credentials   = Rails.application.credentials[Rails.env.to_sym].slack
+      credentials   = Rails.application.credentials[Rails.env.to_sym][:slack]
       client_id     = credentials[:client_id]
       client_secret = credentials[:client_secret]
       code          = params[:code]
@@ -265,7 +265,7 @@ class SlackController < ApplicationController
     ts         = request.headers["X-Slack-Request-Timestamp"]
     body       = request.raw_post
     sig_basestring = [version, ts, body].join(":")
-    slack_signing_secret = Rails.application.credentials[Rails.env.to_sym].slack[:signing_secret]
+    slack_signing_secret = Rails.application.credentials[Rails.env.to_sym][:slack][:signing_secret]
     my_signature = "v0=" + OpenSSL::HMAC.hexdigest("SHA256", slack_signing_secret, sig_basestring)
     slack_signature = request.headers["X-Slack-Signature"]
 
@@ -278,7 +278,7 @@ class SlackController < ApplicationController
   end
 
   def client
-    token = Rails.application.credentials[Rails.env.to_sym].slack[:bot_oauth_access_token]
+    token = Rails.application.credentials[Rails.env.to_sym][:slack][:bot_oauth_access_token]
     @client ||= Slack::Web::Client.new(token: token)
   end
 
