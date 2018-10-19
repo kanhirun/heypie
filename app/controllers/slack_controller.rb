@@ -4,6 +4,8 @@ require_relative './utils/slack_message_builder'
 class SlackController < ApplicationController
   include ErrorHandling::HttpStatusCodes
 
+  before_action :verify_requests
+
   rescue_from KeyError, with: :bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
@@ -254,6 +256,22 @@ class SlackController < ApplicationController
     ts = params["event"]["ts"]
     if req = Contribution.last
       req.update({ts: ts})
+    end
+  end
+
+  def verify_requests
+    version    = "v0"
+    ts         = request.headers["X-Slack-Request-Timestamp"]
+    body       = request.raw_post
+    sig_basestring = [version, ts, body].join(":")
+    slack_signing_secret = Rails.application.credentials.slack[:signing_secret]
+    my_signature = "v0=" + OpenSSL::HMAC.hexdigest("SHA256", slack_signing_secret, sig_basestring)
+    slack_signature = request.headers["X-Slack-Signature"]
+
+    if my_signature != slack_signature
+      # needs security logging
+
+      render plain: "Signatures do not match.", status: 400
     end
   end
 
