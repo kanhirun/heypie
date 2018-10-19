@@ -1,5 +1,7 @@
 class SlackMessageBuilder
 
+  BOT_USERNAME = "heypie"
+
   def initialize(model, description = nil)
     @model = model
     @description = description
@@ -36,17 +38,12 @@ class SlackMessageBuilder
   end
 
   def header
-    if Rails.env.production?
-      bot_username = "hey_pie"
-    else
-      bot_username = "hey_pie_test"
-    end
     submitter = @model.submitter.slack_user_id
 
     <<~SLACK_TEMPLATE
       _*TxHash:* <https://etherscan.io/tx/0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842|0x6267ffe683c9f268189e4042f3b2b4cf33e51193ac6b2e82ed7e733f47a3c842>_
       _*From:* <@#{submitter}> (<https://etherscan.io/address/0x1038ae6fcd73a1846f8ea6ac1ff3a4fe57eb76d7|0x1038ae6fcd73a1846f8ea6ac1ff3a4fe57eb76d7>)_
-      _*To:* <@#{bot_username}> (<https://etherscan.io/address/0x8d12a197cb00d4747a1fe03395095ce2a5cc6819#code|0x8d12a197cb00d4747a1fe03395095ce2a5cc6819>)_
+      _*To:* <@#{BOT_USERNAME}> (<https://etherscan.io/address/0x8d12a197cb00d4747a1fe03395095ce2a5cc6819#code|0x8d12a197cb00d4747a1fe03395095ce2a5cc6819>)_
       _*SocialContract (d190379):* (<https://github.com/kanhirun/hey-pie-social-contract/blame/d190379a0dd2640df5bc6d9f1e08312a99db914c/README.md|view>) (<https://github.com/kanhirun/hey-pie-social-contract/edit/master/README.md|edit>)_
     SLACK_TEMPLATE
   end
