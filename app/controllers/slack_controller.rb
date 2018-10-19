@@ -4,7 +4,7 @@ require_relative './utils/slack_message_builder'
 class SlackController < ApplicationController
   include ErrorHandling::HttpStatusCodes
 
-  before_action :verify_requests
+  before_action :verify_requests, except: :authenticate
 
   rescue_from KeyError, with: :bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :not_found
@@ -271,8 +271,6 @@ class SlackController < ApplicationController
 
     if my_signature != slack_signature
       # needs security logging
-      puts my_signature, slack_signature
-
       render plain: "Signatures do not match.", status: 400
     end
   end
