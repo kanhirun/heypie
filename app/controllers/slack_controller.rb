@@ -9,6 +9,16 @@ class SlackController < ApplicationController
 
   SLACK_BOT_TOKEN = ENV.fetch("SLACK_BOT_TOKEN")
 
+  def authenticate
+    if params[:error] == "access_denied"
+      render plain: "You've denied permissions.", status: 400 and return
+    elsif params[:code].present?
+      render plain: "Thanks! You're ready to try out Hey, Pie!", status: 200 and return
+    end
+
+    render plain: "Nothing to see here yet.", status: 200
+  end
+
   # a naive algorithm for interpreting text intending to
   # organize users to their contributions
   #
