@@ -271,6 +271,7 @@ class SlackController < ApplicationController
 
     if my_signature != slack_signature
       # needs security logging
+      puts my_signature, slack_signature
       render plain: "Signatures do not match.", status: 400
     end
   end
