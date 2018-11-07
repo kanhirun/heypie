@@ -3,9 +3,9 @@ require_relative './utils/slack_message_builder'
 
 class SlackController < ApplicationController
 
-  before_action :verify_requests, except: :authenticate
+  before_action :verify_requests, except: :oauth_redirect
 
-  def authenticate
+  def oauth_redirect
     if params[:error] == "access_denied"
       render plain: "You've denied permissions.", status: 400 and return
     elsif params[:code].present?
