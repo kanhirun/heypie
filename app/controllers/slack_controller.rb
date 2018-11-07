@@ -2,20 +2,15 @@ require_relative './concerns/error_handling'
 require_relative './utils/slack_message_builder'
 
 class SlackController < ApplicationController
-  include ErrorHandling::HttpStatusCodes
 
   before_action :verify_requests, except: :authenticate
-
-  rescue_from KeyError, with: :bad_request
-  rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
   def authenticate
     if params[:error] == "access_denied"
       render plain: "You've denied permissions.", status: 400 and return
     elsif params[:code].present?
-      credentials   = Rails.application.credentials[Rails.env.to_sym][:slack]
-      client_id     = credentials[:client_id]
-      client_secret = credentials[:client_secret]
+      client_id     = slack_credentials[:client_id]
+      client_secret = slack_credentials[:client_secret]
       code          = params[:code]
 
       client.oauth_access(client_id: client_id, client_secret: client_secret, code: code)
@@ -265,7 +260,7 @@ class SlackController < ApplicationController
     ts         = request.headers["X-Slack-Request-Timestamp"]
     body       = request.raw_post
     sig_basestring = [version, ts, body].join(":")
-    slack_signing_secret = Rails.application.credentials[Rails.env.to_sym][:slack][:signing_secret]
+    slack_signing_secret = slack_credentials[:signing_secret]
     my_signature = "v0=" + OpenSSL::HMAC.hexdigest("SHA256", slack_signing_secret, sig_basestring)
     slack_signature = request.headers["X-Slack-Signature"]
 
@@ -277,7 +272,7 @@ class SlackController < ApplicationController
   end
 
   def client
-    token = Rails.application.credentials[Rails.env.to_sym][:slack][:bot_oauth_access_token]
+    token = slack_credentials[:bot_oauth_access_token]
     @client ||= Slack::Web::Client.new(token: token)
   end
 
@@ -285,4 +280,9 @@ class SlackController < ApplicationController
   def client=(new_client)
     @client = new_client
   end
+
+  private
+    def slack_credentials
+      Rails.application.credentials[:slack][ ENV.fetch('SLACK_WORKSPACE').to_sym ]
+    end
 end
