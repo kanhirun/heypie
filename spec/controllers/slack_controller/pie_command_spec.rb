@@ -97,31 +97,7 @@ describe SlackController, type: :controller do
         allow(@client).to receive(:chat_postMessage).and_return(nil)
       end
 
-      xit 'also opens a dialog' do
-        Grunt.create!(slack_user_id: "alice-id")
-        dialog = {
-          "callback_id": "ryde-46e2b0",
-          "title": "Hey! Ready to request?", # 24 char
-          "submit_label": "Yeah_I_am!",  # one word contraint
-          "elements": [
-            {
-              "label": "Describe it for me.",
-              "type": "textarea",
-              "name": "contribution_description",
-              "hint": "Provide additional information if needed."
-            }
-          ]
-        }
-        expect(@client).to receive(:dialog_open).with({ trigger_id: "some-trigger-id", dialog: dialog })
-
-        command = from_slack('/pie @alice 22').merge({ "channel_id": "9999", "user_id": "alice-id"})
-        post :pie_command, params: command
-
-        # todo: expect(response).to have_http_status :ok
-        expect(response).to have_http_status :no_content
-      end
-
-      it '/pie @alice 22' do
+      xit '/pie @alice 22' do
         alice = Grunt.create!(slack_user_id: "alice-id")
         command = from_slack('/pie @alice 22').merge({ "channel_id": "9999", "user_id": "alice-id"})
 
@@ -137,10 +113,10 @@ describe SlackController, type: :controller do
         expect(alice.slices_of_pie.to_f).to eql(22 * alice.hourly_rate)
       end
 
-      it '/heypie-group @alice @bob 5.0' do
+      xit '/pie @alice @bob 5.0' do
         alice = Grunt.create!(slack_user_id: "alice-id", base_salary: 10_000)
         bob = Grunt.create!(slack_user_id: 'bob-id', base_salary: 7_000)
-        command = from_slack('/heypie-group @alice @bob 5.0').merge({ "channel_id": "9999", "user_id": "alice-id"})
+        command = from_slack('/pie @alice @bob 5.0').merge({ "channel_id": "9999", "user_id": "alice-id"})
 
         post :pie_command, params: command
 
@@ -154,7 +130,7 @@ describe SlackController, type: :controller do
         expect(bob.slices_of_pie.to_f).to eql(5 * bob.hourly_rate)
       end
 
-      it '/pie @alice 10 @bob 5' do
+      xit '/pie @alice 10 @bob 5' do
         alice = Grunt.create!(slack_user_id: "alice-id", base_salary: 99_001)
         bob = Grunt.create!(slack_user_id: 'bob-id', base_salary: 7_333)
         command = from_slack('/heypie-group @alice 10.27 @bob 7.77').merge({ "channel_id": "9999", "user_id": "alice-id"})

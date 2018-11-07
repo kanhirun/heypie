@@ -4,7 +4,7 @@ require_relative './utils/slack_message_builder'
 module Validator
   # Returns true/false depending on whether the signatures match between the client
   # and server
-  def authenticated?(request)
+  def self.authenticated?(request)
     ts              = request.headers["X-Slack-Request-Timestamp"]
     body            = request.raw_post
     slack_signature = request.headers["X-Slack-Signature"]
@@ -16,10 +16,15 @@ module Validator
 
     my_signature == slack_signature
   end
+
+  def self.slack_credentials
+    Rails.application.credentials[:slack][ ENV.fetch('SLACK_WORKSPACE').to_sym ]
+  end
 end
 
 class SlackController < ApplicationController
 
+  # Only responds to HTTP requests from api.slack.com
   before_action :verify_requests, except: :oauth_redirect
 
   rescue_from 'ActionController::ParameterMissing' do |e|
@@ -30,6 +35,11 @@ class SlackController < ApplicationController
   rescue_from 'ActiveRecord::RecordNotFound' do |e|
     Rails.logger.warn(e)
     head :not_found
+  end
+
+  rescue_from 'Slack::Web::Api::Errors::SlackError' do |e|
+    Rails.logger.error(e)
+    head 504
   end
 
   def oauth_redirect
@@ -97,6 +107,16 @@ class SlackController < ApplicationController
   def submit
     deserialized = JSON(params.fetch("payload"))
 
+    # heypie group command
+    if deserialized["state"].present?
+      channel = deserialized["channel"]["id"]
+      text = deserialized["state"]
+      submitter_name = deserialized["user"]["id"]
+
+      bake_pie_with_friends!(channel, text, submitter_name)
+      return
+    end
+
     nominated      = deserialized.fetch("submission").fetch("contribution_to")
     origin         = deserialized.fetch("channel").fetch("id")
     submitter_name = deserialized.fetch("user").fetch("id")
@@ -116,7 +136,6 @@ class SlackController < ApplicationController
     formatter = SlackMessageBuilder.new(contribution, description)
     text, attachments = formatter.build
 
-    # todo: capture slack error
     client.chat_postMessage(
       channel: origin,
       text: text,
@@ -258,10 +277,30 @@ class SlackController < ApplicationController
     end
 
     def heypie_group_command
-      channel = params.fetch("channel_id")
+      trigger_id = params.fetch("trigger_id")
       text = params.fetch("text")
-      submitter_name = params.fetch("user_id")
 
+      dialog = {
+        "callback_id": "ryde-46e2b0",
+        "title": "Hey! Ready to request?", # 24 char
+        "state": text,
+        "submit_label": "Yeah_I_am!",  # one word contraint
+        "elements": [
+          {
+            "label": "Describe it for me.",
+            "type": "textarea",
+            "name": "contribution_description",
+            "hint": "Provide additional information if needed."
+          }
+        ]
+      }
+
+      client.dialog_open(trigger_id: trigger_id, dialog: dialog)
+
+      render status: 204
+    end
+
+    def bake_pie_with_friends!(channel, text, submitter_name)
       users = client.users_list
       submitter = Grunt.find_by!(slack_user_id: submitter_name)
 
@@ -311,5 +350,4 @@ class SlackController < ApplicationController
         render status: 404
       end
     end
-
 end
