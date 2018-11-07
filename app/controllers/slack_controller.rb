@@ -57,6 +57,16 @@ class SlackController < ApplicationController
     return results
   end
 
+  def pie_command
+    arguments = params.fetch("text")
+
+    if arguments.present?
+      heypie_group_command
+    else
+      heypie_single_command
+    end
+  end
+
   def heypie_group_command
     channel = params.fetch("channel_id")
     text = params.fetch("text")
@@ -112,7 +122,7 @@ class SlackController < ApplicationController
     end
   end
 
-  def heypie_command
+  def heypie_single_command
     trigger_id = params.fetch("trigger_id")
 
     dialog = {

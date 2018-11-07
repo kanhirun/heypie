@@ -2,7 +2,6 @@ require 'rails_helper'
 
 # disable for now until better solution around testing message verifier
 xdescribe SlackController, type: :controller do
-
   describe 'POST /slack/slash_commands/heypie' do
     it 'opens a dialog' do
       client = instance_double('Slack::Client')
@@ -32,7 +31,6 @@ xdescribe SlackController, type: :controller do
         ]
       }
       controller.client = client
-
       expect(client).to receive(:dialog_open).with({ trigger_id: "some-trigger-id", dialog: dialog })
 
       post :heypie_command,
@@ -41,7 +39,7 @@ xdescribe SlackController, type: :controller do
           "trigger_id": "some-trigger-id"
         },
         headers: {
-          'X-Slack-Request-Timestamp': 'some-ts',
+          'X-Slack-Request-Timestamp': 'some-ts',  # this is incomplete
           'X-Slack-Signature': 'some-computed-value'
         }
 
@@ -49,25 +47,32 @@ xdescribe SlackController, type: :controller do
       expect(response).to have_http_status :no_content
     end
 
-    it "returns 504 SERVICE UNAVAILABLE when the server isn't fast enough" do
-      mock_client = instance_double("SlackClient")
-      allow(mock_client).to receive(:dialog_open).with(anything()) do
-        raise Slack::Web::Api::Errors::SlackError.new("timeout")
+    describe 'errors' do
+      it "returns 504 when too slow for Slack" do
+        # 504:
+        # The server is currently unable to handle the request due to a temporary
+        # overloading or maintenance of the server. The implication is that this is a
+        # temporary condition which will be alleviated after some delay
+
+        mock_client = instance_double("SlackClient")
+        allow(mock_client).to receive(:dialog_open).with(anything()) do
+          raise Slack::Web::Api::Errors::SlackError.new("timeout")
+        end
+        controller.client = mock_client
+
+        post :heypie_command, params: { "trigger_id": "99999999" }
+
+        expect(response).to have_http_status 504
       end
-      controller.client = mock_client
 
-      post :heypie_command, params: { "trigger_id": "99999999" }
+      it 'returns 400 if missing a param' do
+        client = instance_double('Slack::Client')
+        controller.client = client
 
-      expect(response).to have_http_status 504
-    end
+        post :heypie_command, params: {}
 
-    it 'returns 400 BAD REQUEST if request is malformed' do
-      client = instance_double('Slack::Client')
-      controller.client = client
-
-      post :heypie_command, params: {}
-
-      expect(response).to have_http_status :bad_request
+        expect(response).to have_http_status :bad_request
+      end
     end
   end
 
