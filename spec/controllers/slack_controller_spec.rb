@@ -157,7 +157,7 @@ describe SlackController, type: :controller do
       }
       expect(@logger).to receive(:warn)
 
-      post :dialog_submission, params: params
+      post :submit, params: params
 
       expect(response).to have_http_status :not_found
     end
@@ -166,7 +166,7 @@ describe SlackController, type: :controller do
       Grunt.create!(slack_user_id: "Alice")
       expect(@logger).to receive(:error)
 
-      post :dialog_submission, params: {}
+      post :submit, params: {}
 
       expect(response).to have_http_status :bad_request
     end
@@ -190,7 +190,7 @@ describe SlackController, type: :controller do
         "payload": JSON(jsonified)
       }
 
-      post :dialog_submission, params: params
+      post :submit, params: params
 
       alice.reload
 
@@ -237,7 +237,7 @@ describe SlackController, type: :controller do
         ]
       })
 
-      post :vote_on_request, params: { payload: params }
+      post :vote, params: { payload: params }
 
       alice.reload
 

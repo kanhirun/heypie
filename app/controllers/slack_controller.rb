@@ -188,7 +188,7 @@ class SlackController < ApplicationController
     end
   end
 
-  def dialog_submission
+  def submit
     deserialized = JSON(params.fetch("payload"))
 
     nominated      = deserialized.fetch("submission").fetch("contribution_to")
@@ -219,7 +219,7 @@ class SlackController < ApplicationController
     )
   end
 
-  def vote_on_request
+  def vote
     payload = JSON(params.fetch("payload"))
     username = payload.fetch("user").fetch("id")
     origin = payload.fetch("channel").fetch("id")
