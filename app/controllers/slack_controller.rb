@@ -1,9 +1,37 @@
 require_relative './concerns/error_handling'
 require_relative './utils/slack_message_builder'
 
+module Validator
+  # Returns true/false depending on whether the signatures match between the client
+  # and server
+  def authenticated?(request)
+    ts              = request.headers["X-Slack-Request-Timestamp"]
+    body            = request.raw_post
+    slack_signature = request.headers["X-Slack-Signature"]
+
+    version              = "v0"
+    sig_basestring       = [version, ts, body].join(":")
+    slack_signing_secret = slack_credentials[:signing_secret]
+    my_signature         = "v0=" + OpenSSL::HMAC.hexdigest("SHA256", slack_signing_secret, sig_basestring)
+
+    my_signature == slack_signature
+  end
+end
+
+
 class SlackController < ApplicationController
 
   before_action :verify_requests, except: :oauth_redirect
+
+  rescue_from 'ActionController::ParameterMissing' do |e|
+    Rails.logger.error(e)
+    head :bad_request
+  end
+
+  rescue_from 'ActiveRecord::RecordNotFound' do |e|
+    Rails.logger.warn(e)
+    head :not_found
+  end
 
   def oauth_redirect
     if params[:error] == "access_denied"
@@ -266,17 +294,7 @@ class SlackController < ApplicationController
   end
 
   def verify_requests
-    version    = "v0"
-    ts         = request.headers["X-Slack-Request-Timestamp"]
-    body       = request.raw_post
-    sig_basestring = [version, ts, body].join(":")
-    slack_signing_secret = slack_credentials[:signing_secret]
-    my_signature = "v0=" + OpenSSL::HMAC.hexdigest("SHA256", slack_signing_secret, sig_basestring)
-    slack_signature = request.headers["X-Slack-Signature"]
-
-    if my_signature != slack_signature
-      # needs security logging
-      puts my_signature, slack_signature
+    if !validator.authenticated?(request)
       render plain: "Signatures do not match.", status: 400
     end
   end
@@ -286,13 +304,20 @@ class SlackController < ApplicationController
     @client ||= Slack::Web::Client.new(token: token)
   end
 
-  # for testing
-  def client=(new_client)
-    @client = new_client
+  def validator
+    @validator ||= Validator
   end
 
   private
     def slack_credentials
       Rails.application.credentials[:slack][ ENV.fetch('SLACK_WORKSPACE').to_sym ]
+    end
+
+    def client=(new_client)
+      @client = new_client
+    end
+
+    def validator=(validator)
+      @validator = validator
     end
 end
