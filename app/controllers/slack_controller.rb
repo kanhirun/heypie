@@ -98,7 +98,7 @@ class SlackController < ApplicationController
     arguments = params.fetch("text")
 
     if arguments.present?
-      heypie_group_command
+      heypie_team_command
     else
       heypie_single_command
     end
@@ -108,7 +108,7 @@ class SlackController < ApplicationController
     deserialized = JSON(params.fetch("payload"))
 
     # heypie group command
-    if deserialized["state"].present?
+    if deserialized["callback_id"] == "team_contribution"
       channel = deserialized["channel"]["id"]
       text = deserialized["state"]
       submitter_name = deserialized["user"]["id"]
@@ -242,7 +242,7 @@ class SlackController < ApplicationController
       trigger_id = params.fetch("trigger_id")
 
       dialog = {
-        "callback_id": "ryde-46e2b0",
+        "callback_id": "solo_contribution",
         "title": "Hey! Ready to request?", # 24 char
         "submit_label": "Yeah_I_am!",  # one word contraint
         "elements": [
@@ -276,12 +276,12 @@ class SlackController < ApplicationController
       end
     end
 
-    def heypie_group_command
+    def heypie_team_command
       trigger_id = params.fetch("trigger_id")
       text = params.fetch("text")
 
       dialog = {
-        "callback_id": "ryde-46e2b0",
+        "callback_id": "team_contribution",
         "title": "Hey! Ready to request?", # 24 char
         "state": text,
         "submit_label": "Yeah_I_am!",  # one word contraint

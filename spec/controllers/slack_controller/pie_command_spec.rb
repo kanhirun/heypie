@@ -34,7 +34,7 @@ describe SlackController, type: :controller do
     context "without args" do
       it 'opens a dialog' do
         dialog = {
-          "callback_id": "ryde-46e2b0",
+          "callback_id": "solo_contribution",
           "title": "Hey! Ready to request?", # 24 char
           "submit_label": "Yeah_I_am!",  # one word contraint
           "elements": [
@@ -60,7 +60,7 @@ describe SlackController, type: :controller do
         }
         expect(@client).to receive(:dialog_open).with({ trigger_id: "some-trigger-id", dialog: dialog })
 
-        post :pie_command, params: { "command": '/heypie', "text": "", "trigger_id": "some-trigger-id" }
+        post :pie_command, params: { "command": '/pie', "text": "", "trigger_id": "some-trigger-id" }
 
         # todo: expect(response).to have_http_status :ok
         expect(response).to have_http_status :no_content
