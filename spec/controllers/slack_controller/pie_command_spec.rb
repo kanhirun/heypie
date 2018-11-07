@@ -31,7 +31,7 @@ describe SlackController, type: :controller do
   end
 
   describe 'POST /slack/commands/pie' do
-    context "without arguments" do
+    context "without args" do
       it 'opens a dialog' do
         dialog = {
           "callback_id": "ryde-46e2b0",
@@ -84,7 +84,7 @@ describe SlackController, type: :controller do
       end
     end
 
-    context "with arguments" do
+    context "with args" do
       before do
         users = Slack::Messages::Message.new({
           members: [
@@ -95,6 +95,30 @@ describe SlackController, type: :controller do
 
         allow(@client).to receive(:users_list).and_return(users)
         allow(@client).to receive(:chat_postMessage).and_return(nil)
+      end
+
+      xit 'also opens a dialog' do
+        Grunt.create!(slack_user_id: "alice-id")
+        dialog = {
+          "callback_id": "ryde-46e2b0",
+          "title": "Hey! Ready to request?", # 24 char
+          "submit_label": "Yeah_I_am!",  # one word contraint
+          "elements": [
+            {
+              "label": "Describe it for me.",
+              "type": "textarea",
+              "name": "contribution_description",
+              "hint": "Provide additional information if needed."
+            }
+          ]
+        }
+        expect(@client).to receive(:dialog_open).with({ trigger_id: "some-trigger-id", dialog: dialog })
+
+        command = from_slack('/pie @alice 22').merge({ "channel_id": "9999", "user_id": "alice-id"})
+        post :pie_command, params: command
+
+        # todo: expect(response).to have_http_status :ok
+        expect(response).to have_http_status :no_content
       end
 
       it '/pie @alice 22' do
@@ -151,5 +175,4 @@ describe SlackController, type: :controller do
       xit '/pie @alice @alice 10 @alice 5' do; end
     end
   end
-
 end

@@ -18,7 +18,6 @@ module Validator
   end
 end
 
-
 class SlackController < ApplicationController
 
   before_action :verify_requests, except: :oauth_redirect
@@ -92,99 +91,6 @@ class SlackController < ApplicationController
       heypie_group_command
     else
       heypie_single_command
-    end
-  end
-
-  def heypie_group_command
-    channel = params.fetch("channel_id")
-    text = params.fetch("text")
-    submitter_name = params.fetch("user_id")
-
-    users = client.users_list
-    submitter = Grunt.find_by!(slack_user_id: submitter_name)
-
-    # get only valid slack users
-    # returns <members>
-    matched_users = users.members.select do |member|
-      text.include? member.name
-    end
-
-    # map: Slack(user name => user id)
-    x = {}
-    process_command(text).each do |name, hours|
-      if found = matched_users.find{ |u| u.name == name }
-        x[found.id] = hours
-      end
-    end
-
-    # map: user id => grunt
-    y = {}
-    x.each do |id, hours|
-      if found = Grunt.find_by(slack_user_id: id)
-        y[found] = hours
-      end
-    end
-
-    if y.present?
-      contribution = Contribution.new(
-        submitter: submitter,
-        voters: Grunt.heypie_grunts
-      )
-      contribution.save!
-
-      contribution.contribute_hours(y)
-
-      message = SlackMessageBuilder.new(contribution)
-
-      text, attachments = message.build
-
-      client.chat_postMessage(
-        channel: channel,
-        text: text,
-        attachments: attachments
-      )
-
-      render status: 204
-    else
-      render status: 404
-    end
-  end
-
-  def heypie_single_command
-    trigger_id = params.fetch("trigger_id")
-
-    dialog = {
-        "callback_id": "ryde-46e2b0",
-        "title": "Hey! Ready to request?", # 24 char
-        "submit_label": "Yeah_I_am!",  # one word contraint
-        "elements": [
-          {
-            "label": "Who did the work?", # 24 char
-            "name": "contribution_to",
-            "type": "select",
-            "data_source": "users"
-          },
-          {
-            "label": "How long was it? ex 1.75",
-            "type": "text",
-            "subtype": "number",
-            "name": "contribution_hours"
-          },
-          {
-            "label": "Describe it for me.",
-            "type": "textarea",
-            "name": "contribution_description",
-            "hint": "Provide additional information if needed."
-          }
-        ]
-    }
-
-    begin
-      client.dialog_open(trigger_id: trigger_id, dialog: dialog)
-      render status: 204
-    rescue Slack::Web::Api::Errors::SlackError => e  # todo: target this error
-      puts e
-      render status: 504
     end
   end
 
@@ -293,31 +199,117 @@ class SlackController < ApplicationController
     end
   end
 
-  def verify_requests
-    if !validator.authenticated?(request)
-      render plain: "Signatures do not match.", status: 400
-    end
-  end
-
-  def client
-    token = slack_credentials[:bot_oauth_access_token]
-    @client ||= Slack::Web::Client.new(token: token)
-  end
-
-  def validator
-    @validator ||= Validator
-  end
-
   private
     def slack_credentials
       Rails.application.credentials[:slack][ ENV.fetch('SLACK_WORKSPACE').to_sym ]
     end
 
-    def client=(new_client)
-      @client = new_client
+    def client
+      token = slack_credentials[:bot_oauth_access_token]
+      @client ||= Slack::Web::Client.new(token: token)
     end
 
-    def validator=(validator)
-      @validator = validator
+    def validator
+      @validator ||= Validator
     end
+
+    def verify_requests
+      if !validator.authenticated?(request)
+        render plain: "Signatures do not match.", status: 400
+      end
+    end
+
+    def heypie_single_command
+      trigger_id = params.fetch("trigger_id")
+
+      dialog = {
+        "callback_id": "ryde-46e2b0",
+        "title": "Hey! Ready to request?", # 24 char
+        "submit_label": "Yeah_I_am!",  # one word contraint
+        "elements": [
+          {
+            "label": "Who did the work?", # 24 char
+            "name": "contribution_to",
+            "type": "select",
+            "data_source": "users"
+          },
+          {
+            "label": "How long was it? ex 1.75",
+            "type": "text",
+            "subtype": "number",
+            "name": "contribution_hours"
+          },
+          {
+            "label": "Describe it for me.",
+            "type": "textarea",
+            "name": "contribution_description",
+            "hint": "Provide additional information if needed."
+          }
+        ]
+      }
+
+      begin
+        client.dialog_open(trigger_id: trigger_id, dialog: dialog)
+        render status: 204
+      rescue Slack::Web::Api::Errors::SlackError => e  # todo: target this error
+        puts e
+        render status: 504
+      end
+    end
+
+    def heypie_group_command
+      channel = params.fetch("channel_id")
+      text = params.fetch("text")
+      submitter_name = params.fetch("user_id")
+
+      users = client.users_list
+      submitter = Grunt.find_by!(slack_user_id: submitter_name)
+
+      # get only valid slack users
+      # returns <members>
+      matched_users = users.members.select do |member|
+        text.include? member.name
+      end
+
+      # map: Slack(user name => user id)
+      x = {}
+      process_command(text).each do |name, hours|
+        if found = matched_users.find{ |u| u.name == name }
+          x[found.id] = hours
+        end
+      end
+
+      # map: user id => grunt
+      y = {}
+      x.each do |id, hours|
+        if found = Grunt.find_by(slack_user_id: id)
+          y[found] = hours
+        end
+      end
+
+      if y.present?
+        contribution = Contribution.new(
+          submitter: submitter,
+          voters: Grunt.heypie_grunts
+        )
+        contribution.save!
+
+        contribution.contribute_hours(y)
+
+        message = SlackMessageBuilder.new(contribution)
+
+        text, attachments = message.build
+
+        client.chat_postMessage(
+          channel: channel,
+          text: text,
+          attachments: attachments
+        )
+
+        render status: 204
+      else
+        render status: 404
+      end
+    end
+
 end
