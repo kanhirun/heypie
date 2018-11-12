@@ -50,7 +50,89 @@ describe SlackMessageBuilder do
       end
     end
 
-    describe '#request' do
+    describe '#request_body_better' do
+      it 'returns a custom message with a single contributor' do
+        bob = Grunt.create!(slack_user_id: "Bob", base_salary: 1_000)
+
+        # in the past...
+        contribution = Contribution.create!(submitter: bob, voters: [])
+        contribution.contribute_hours(bob => 999)
+        contribution.process!
+
+        # displaying...
+        contribution = Contribution.create!(submitter: bob, voters: [])
+        contribution.contribute_hours(bob => 5)
+        contribution.process!
+        subject = SlackMessageBuilder.new(contribution)
+
+        text = subject.request_body_better
+
+        expect(text).to eql <<~SLACK_TEMPLATE
+          *Request:*
+          > <@Bob> estimates that their contribution ups the value of the pie by *+$5.0*
+        SLACK_TEMPLATE
+      end
+
+      it 'returns a custom message with a single contributor' do
+        alice = Grunt.create!(slack_user_id: "Alice", base_salary: 99999)
+        bob = Grunt.create!(slack_user_id: "Bob", base_salary: 1_000)
+
+        # in the past...
+        contribution = Contribution.create!(submitter: alice, voters: [])
+        contribution.contribute_hours(bob => 999)
+        contribution.process!
+
+        # displaying...
+        contribution = Contribution.create!(submitter: alice, voters: [])
+        contribution.contribute_hours(bob => 5)
+        contribution.process!
+        subject = SlackMessageBuilder.new(contribution)
+
+        text = subject.request_body_better
+
+        expect(text).to eql <<~SLACK_TEMPLATE
+          *Request:*
+          > <@Alice> estimates that <@Bob>'s contribution ups the value of the pie by *+$5.0*
+        SLACK_TEMPLATE
+      end
+
+      it 'returns a custom message with many contributors' do
+        bob = Grunt.create!(slack_user_id: "Bob", base_salary: 1_000)
+        alice = Grunt.create!(slack_user_id: "Alice", base_salary: 1_000)
+        contribution = Contribution.create!(submitter: bob, voters: [])
+        contribution.contribute_hours(bob => 5, alice => 10)
+        contribution.process!
+
+        subject = SlackMessageBuilder.new(contribution)
+
+        text = subject.request_body_better
+
+        expect(text).to eql <<~SLACK_TEMPLATE
+          *Request:*
+          > <@Bob> estimates that <@Alice> and <@Bob>'s contribution ups the value of the pie by *+$15.0*
+        SLACK_TEMPLATE
+      end
+
+      it 'returns a custom message with many contributors' do
+        bob = Grunt.create!(slack_user_id: "Bob", base_salary: 1_000)
+        alice = Grunt.create!(slack_user_id: "Alice", base_salary: 1_000)
+        mike = Grunt.create!(slack_user_id: "Mike", base_salary: 1_000)
+        contribution = Contribution.create!(submitter: bob, voters: [])
+        contribution.contribute_hours(bob => 5, alice => 10, mike => 1)
+        contribution.process!
+
+        subject = SlackMessageBuilder.new(contribution)
+
+        text = subject.request_body_better
+
+        expect(text).to eql <<~SLACK_TEMPLATE
+          *Request:*
+          > <@Bob> estimates that <@Alice>, <@Bob>, and <@Mike>'s contribution ups the value of the pie by *+$16.0*
+        SLACK_TEMPLATE
+      end
+    end
+
+    describe '#request_body' do
       it 'returns a custom message with a single contributor' do
         bob = Grunt.create!(slack_user_id: "Bob", base_salary: 1_000)
 

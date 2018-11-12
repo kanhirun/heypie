@@ -74,6 +74,50 @@ class SlackMessageBuilder
     end
   end
 
+  def request_body_better
+    submitter = @model.submitter.slack_user_id
+
+    if @model.nominated_grunts.many?
+      many = @model.nominations
+        .sort_by(&:slices_of_pie_to_be_rewarded).reverse
+        .map do |nomination|
+        "<@#{nomination.grunt.slack_user_id}>"
+      end
+      if @model.nominated_grunts.size == 2
+        many = many.join(" and ")
+      else
+        many = many[(0...-1)].join(", ") + ', and ' + many[-1]
+      end
+
+      value = 0.0
+      @model.nominations.each do |n|
+        value += n.slices_of_pie_to_be_rewarded
+      end
+
+      return <<~SLACK_TEMPLATE
+        *Request:*
+        > <@#{submitter}> estimates that #{many}'s contribution ups the value of the pie by *+$#{value}*
+      SLACK_TEMPLATE
+    end
+
+    # one grunt
+    to = @model.nominated_grunts.first
+    n = Nomination.where(grunt: to, contribution: @model).first
+    time_in_hours = n.time_in_hours
+
+    if @model.submitter == to
+      return <<~SLACK_TEMPLATE
+        *Request:*
+        > <@#{submitter}> estimates that their contribution ups the value of the pie by *+$#{time_in_hours * to.hourly_rate}*
+      SLACK_TEMPLATE
+    else
+      return <<~SLACK_TEMPLATE
+        *Request:*
+        > <@#{submitter}> estimates that <@#{to.slack_user_id}>'s contribution ups the value of the pie by *+$#{time_in_hours * to.hourly_rate}*
+      SLACK_TEMPLATE
+    end
+  end
+
   def description
     return "" if @description.nil?
 
