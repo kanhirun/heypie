@@ -159,7 +159,7 @@ class SlackController < ApplicationController
     req = Contribution.find_by(ts: ts)
 
     if req.nil?
-      puts 'could not find ts'
+      Rails.logger.error("Expected to find a timestamp, but was nil.")
       render status: 500 and return
     end
 
