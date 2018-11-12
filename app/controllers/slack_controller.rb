@@ -112,8 +112,9 @@ class SlackController < ApplicationController
       channel = deserialized["channel"]["id"]
       text = deserialized["state"]
       submitter_name = deserialized["user"]["id"]
+      description = deserialized["submission"]["contribution_description"]
 
-      bake_pie_with_friends!(channel, text, submitter_name)
+      bake_pie_with_friends!(channel, text, submitter_name, description)
       return
     end
 
@@ -300,7 +301,7 @@ class SlackController < ApplicationController
       render status: 204
     end
 
-    def bake_pie_with_friends!(channel, text, submitter_name)
+    def bake_pie_with_friends!(channel, text, submitter_name, description)
       users = client.users_list
       submitter = Grunt.find_by!(slack_user_id: submitter_name)
 
@@ -335,7 +336,7 @@ class SlackController < ApplicationController
 
         contribution.contribute_hours(y)
 
-        message = SlackMessageBuilder.new(contribution)
+        message = SlackMessageBuilder.new(contribution, description)
 
         text, attachments = message.build
 
