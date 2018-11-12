@@ -8,7 +8,7 @@ class SlackMessageBuilder
   end
 
   def build
-    text = header + "\n" + request_body + description + requested_changes
+    text = header + "\n" + request_body_better + description + requested_changes
 
     attachments = [
       {
@@ -90,13 +90,15 @@ class SlackMessageBuilder
       end
 
       value = 0.0
+      hours = 0.0
       @model.nominations.each do |n|
         value += n.slices_of_pie_to_be_rewarded
+        hours += n.slices_of_pie_to_be_rewarded / n.grunt.hourly_rate
       end
 
       return <<~SLACK_TEMPLATE
         *Request:*
-        > <@#{submitter}> estimates that #{many}'s contribution ups the value of the pie by *+$#{value}*
+        > <@#{submitter}> estimates that #{many}'s contribution ups the value of the pie by *+$#{value}* for the *#{hours} hours* spent
       SLACK_TEMPLATE
     end
 
@@ -108,12 +110,12 @@ class SlackMessageBuilder
     if @model.submitter == to
       return <<~SLACK_TEMPLATE
         *Request:*
-        > <@#{submitter}> estimates that their contribution ups the value of the pie by *+$#{time_in_hours * to.hourly_rate}*
+        > <@#{submitter}> estimates that their contribution ups the value of the pie by *+$#{time_in_hours * to.hourly_rate}* for the *#{time_in_hours} hours* spent
       SLACK_TEMPLATE
     else
       return <<~SLACK_TEMPLATE
         *Request:*
-        > <@#{submitter}> estimates that <@#{to.slack_user_id}>'s contribution ups the value of the pie by *+$#{time_in_hours * to.hourly_rate}*
+        > <@#{submitter}> estimates that <@#{to.slack_user_id}>'s contribution ups the value of the pie by *+$#{time_in_hours * to.hourly_rate}* for the *#{time_in_hours} hours* spent
       SLACK_TEMPLATE
     end
   end

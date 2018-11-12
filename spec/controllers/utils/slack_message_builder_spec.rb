@@ -23,7 +23,7 @@ describe SlackMessageBuilder do
       _*SocialContract (d190379):* (<https://github.com/kanhirun/hey-pie-social-contract/blame/d190379a0dd2640df5bc6d9f1e08312a99db914c/README.md|view>) (<https://github.com/kanhirun/hey-pie-social-contract/edit/master/README.md|edit>)_
 
       *Request:*
-      > <@Alice> requested approval for *5.0 HOURS* which would award *5 SLICES OF PIE* to *<@Alice>*
+      > <@Alice> estimates that their contribution ups the value of the pie by *+$5.0* for the *5.0 hours* spent
       *Description:*
       > first line
       > second line
@@ -69,7 +69,7 @@ describe SlackMessageBuilder do
 
         expect(text).to eql <<~SLACK_TEMPLATE
           *Request:*
-          > <@Bob> estimates that their contribution ups the value of the pie by *+$5.0*
+          > <@Bob> estimates that their contribution ups the value of the pie by *+$5.0* for the *5.0 hours* spent
         SLACK_TEMPLATE
       end
 
@@ -92,7 +92,7 @@ describe SlackMessageBuilder do
 
         expect(text).to eql <<~SLACK_TEMPLATE
           *Request:*
-          > <@Alice> estimates that <@Bob>'s contribution ups the value of the pie by *+$5.0*
+          > <@Alice> estimates that <@Bob>'s contribution ups the value of the pie by *+$5.0* for the *5.0 hours* spent
         SLACK_TEMPLATE
       end
 
@@ -109,7 +109,7 @@ describe SlackMessageBuilder do
 
         expect(text).to eql <<~SLACK_TEMPLATE
           *Request:*
-          > <@Bob> estimates that <@Alice> and <@Bob>'s contribution ups the value of the pie by *+$15.0*
+          > <@Bob> estimates that <@Alice> and <@Bob>'s contribution ups the value of the pie by *+$15.0* for the *15.0 hours* spent
         SLACK_TEMPLATE
       end
 
@@ -127,7 +127,7 @@ describe SlackMessageBuilder do
 
         expect(text).to eql <<~SLACK_TEMPLATE
           *Request:*
-          > <@Bob> estimates that <@Alice>, <@Bob>, and <@Mike>'s contribution ups the value of the pie by *+$16.0*
+          > <@Bob> estimates that <@Alice>, <@Bob>, and <@Mike>'s contribution ups the value of the pie by *+$16.0* for the *16.0 hours* spent
         SLACK_TEMPLATE
       end
     end
