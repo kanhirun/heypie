@@ -98,7 +98,7 @@ class SlackMessageBuilder
 
       return <<~SLACK_TEMPLATE
         *Request:*
-        > <@#{submitter}> estimates that #{many}'s contribution ups the value of the pie by *+$#{value}* for the *#{hours} hours* spent
+        > <@#{submitter}> estimates that #{many}'s contribution grows the pie by *+$#{value}* for the *#{hours} person-hours* spent
       SLACK_TEMPLATE
     end
 
@@ -110,12 +110,12 @@ class SlackMessageBuilder
     if @model.submitter == to
       return <<~SLACK_TEMPLATE
         *Request:*
-        > <@#{submitter}> estimates that their contribution ups the value of the pie by *+$#{time_in_hours * to.hourly_rate}* for the *#{time_in_hours} hours* spent
+        > <@#{submitter}> estimates that their contribution grows the pie by *+$#{time_in_hours * to.hourly_rate}* for the *#{time_in_hours} hours* spent
       SLACK_TEMPLATE
     else
       return <<~SLACK_TEMPLATE
         *Request:*
-        > <@#{submitter}> estimates that <@#{to.slack_user_id}>'s contribution ups the value of the pie by *+$#{time_in_hours * to.hourly_rate}* for the *#{time_in_hours} hours* spent
+        > <@#{submitter}> estimates that <@#{to.slack_user_id}>'s contribution grows the pie by *+$#{time_in_hours * to.hourly_rate}* for the *#{time_in_hours} hours* spent
       SLACK_TEMPLATE
     end
   end
